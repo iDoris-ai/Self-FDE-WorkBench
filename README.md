@@ -20,7 +20,7 @@
 核心聚焦两件事：
 
 - **LLM 原理** — Transformer 架构、注意力机制、推理过程、能力边界
-- **Agent 构建** — Prompt Engineering、RAG、Tool Use、Memory、Fine-tuning、多 Agent 协作
+- **Agent 构建** — Prompt Engineering到Loop Engineering、RAG、Tool Use、Context Memory、Fine-tuning、多 Agent 协作
 
 ---
 
