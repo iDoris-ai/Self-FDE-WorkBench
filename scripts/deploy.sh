@@ -77,6 +77,20 @@ done
 [ "$missing_i18n" -eq 0 ] || die "发现 $missing_i18n 个页面的语言切换会失效，已中止发布"
 ok "双语脚本引入完整"
 
+# 首帧正确性：<html> 必须静态带 data-lang="en"。
+# 按语言分支的 CSS（:root[data-lang="en"] …）挂在这个属性上。少了它，
+# 首帧会退回基础样式，等 i18n.js 跑完才跳成英文样式 —— 布局抖一下，
+# 而且英文 hero 会在首帧溢出首屏。i18n.js 自己也会设这个属性，但那太晚了。
+missing_lang=0
+for f in $(find "$DIST" -name '*.html'); do
+  if ! grep -qE '<html[^>]*data-lang="en"' "$f"; then
+    echo "  ${RED}缺 data-lang${OFF} ${f#$DIST}（首帧样式会错，随后抖动）"
+    missing_lang=$((missing_lang + 1))
+  fi
+done
+[ "$missing_lang" -eq 0 ] || die "发现 $missing_lang 个页面首帧样式会错，已中止发布"
+ok "首帧语言属性完整"
+
 # 资源体积提醒（Pages 单文件上限 25MB）
 big=$(find "$DIST" -type f -size +20M | head -1)
 [ -z "$big" ] || die "文件过大，超出 Cloudflare Pages 限制：$big"
