@@ -99,10 +99,27 @@ ok "双语脚本引入完整"
 [ "$missing_lang" -eq 0 ] || die "发现 $missing_lang 个页面首帧样式会错，已中止发布"
 ok "首帧语言属性完整"
 
-# 资源体积提醒（Pages 单文件上限 25MB）
+# 单文件不能超过 Cloudflare Pages 的 25MB 上限
 big=""
 while IFS= read -r -d '' f; do big="$f"; break; done < <(find "$DIST" -type f -size +20M -print0)
 [ -z "$big" ] || die "文件过大，超出 Cloudflare Pages 限制：$big"
+
+# 图片预算：忘记压缩不会报错，只会让页面悄悄变重 —— 所以设一道硬闸。
+# 小J 插画走「抠透明 + 64 色量化」（scripts/ink-to-transparent.py），
+# 出来通常 30-100KB。一张原始 PNG 是 1MB+，一旦有人直接扔进来，这里拦住。
+IMG_BUDGET_KB=200
+oversized=0
+while IFS= read -r -d '' f; do
+  kb=$(( $(wc -c < "$f") / 1024 ))
+  if [ "$kb" -gt "$IMG_BUDGET_KB" ]; then
+    echo "  ${RED}图片过大${OFF} ${f#$DIST} — ${kb}KB（上限 ${IMG_BUDGET_KB}KB，忘记压缩了？）"
+    oversized=$((oversized + 1))
+  fi
+done < <(find "$DIST/assets" \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.gif' -o -name '*.webp' \) ! -name 'sketch.jpg' -print0)
+
+[ "$oversized" -eq 0 ] || die "发现 $oversized 张图片超出预算，已中止发布。先跑 scripts/ink-to-transparent.py 并量化。"
+ok "图片体积在预算内（每张 ≤ ${IMG_BUDGET_KB}KB）"
+
 ok "资源体积正常（$(du -sh "$DIST" | cut -f1)）"
 
 if [ "${1:-}" = "--check" ]; then
