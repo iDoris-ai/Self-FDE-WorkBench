@@ -46,7 +46,9 @@ for p in "${PAGES[@]}"; do
 done
 ok "${#PAGES[@]} 个页面文件齐全"
 
-# 站内链接自检：抓出所有 href="/..."，确认目标文件存在
+# 站内引用自检：href 和 src 都要查。
+# src 尤其重要 —— assets/i18n.js 是硬依赖，它缺失/改名不会让页面报错，
+# 只会让中英切换静默失效。只查 href 的话，这种断裂根本拦不住。
 broken=0
 while IFS= read -r link; do
   target="$DIST${link}"
@@ -55,11 +57,25 @@ while IFS= read -r link; do
     echo "  ${RED}断链${OFF} $link"
     broken=$((broken + 1))
   fi
-done < <(grep -rhoE 'href="/[^"#]*"' "$DIST" --include='*.html' \
-         | sed -E 's/href="([^"]*)"/\1/' | sort -u)
+done < <(grep -rhoE '(href|src)="/[^"#]*"' "$DIST" --include='*.html' \
+         | sed -E 's/^(href|src)="([^"]*)"$/\2/' | sort -u)
 
 [ "$broken" -eq 0 ] || die "发现 $broken 条站内断链，已中止发布"
-ok "站内链接无断链"
+ok "站内引用（href + src）无断链"
+
+# 双语硬依赖：每个页面都必须真的引入 i18n.js，否则切换按钮点了没反应。
+# 用 lang-btn 而不是 class="lang" 作为探针：后者是精确串匹配，容器一旦
+# 变成 class="lang xxx" 就会静默失配，检查悄悄变成死代码。
+# lang-btn 是 i18n.js 直接依赖的选择器 —— 它在，脚本就必须在。
+missing_i18n=0
+for f in $(find "$DIST" -name '*.html'); do
+  if grep -q 'lang-btn' "$f" && ! grep -q 'assets/i18n.js' "$f"; then
+    echo "  ${RED}缺 i18n.js${OFF} ${f#$DIST}（有切换按钮却没引入脚本）"
+    missing_i18n=$((missing_i18n + 1))
+  fi
+done
+[ "$missing_i18n" -eq 0 ] || die "发现 $missing_i18n 个页面的语言切换会失效，已中止发布"
+ok "双语脚本引入完整"
 
 # 资源体积提醒（Pages 单文件上限 25MB）
 big=$(find "$DIST" -type f -size +20M | head -1)
