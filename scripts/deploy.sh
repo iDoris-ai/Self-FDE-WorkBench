@@ -63,10 +63,13 @@ done < <(grep -rhoE '(href|src)="/[^"#]*"' "$DIST" --include='*.html' \
 [ "$broken" -eq 0 ] || die "发现 $broken 条站内断链，已中止发布"
 ok "站内引用（href + src）无断链"
 
-# 双语硬依赖：每个页面都必须真的引入 i18n.js，否则切换按钮点了没反应
+# 双语硬依赖：每个页面都必须真的引入 i18n.js，否则切换按钮点了没反应。
+# 用 lang-btn 而不是 class="lang" 作为探针：后者是精确串匹配，容器一旦
+# 变成 class="lang xxx" 就会静默失配，检查悄悄变成死代码。
+# lang-btn 是 i18n.js 直接依赖的选择器 —— 它在，脚本就必须在。
 missing_i18n=0
 for f in $(find "$DIST" -name '*.html'); do
-  if grep -q 'class="lang"' "$f" && ! grep -q 'assets/i18n.js' "$f"; then
+  if grep -q 'lang-btn' "$f" && ! grep -q 'assets/i18n.js' "$f"; then
     echo "  ${RED}缺 i18n.js${OFF} ${f#$DIST}（有切换按钮却没引入脚本）"
     missing_i18n=$((missing_i18n + 1))
   fi
