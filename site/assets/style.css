@@ -458,6 +458,80 @@ section { padding: 96px 0; border-top: 1px solid var(--line); }
 .chip.live   { color: var(--teal);   border-color: rgba(127,219,202,0.4); }
 .chip.wip    { color: var(--signal); border-color: rgba(255,107,53,0.4); }
 
+/* ---------- figrow: 小J illustration beside its text ----------
+   The art is black-ink line work with large black fills (hair, puffer jacket).
+   It CANNOT float on the dark page: any transform that makes black lines
+   visible on black also flips those black fills to light — the jacket goes
+   white and the face becomes a hole. Figure and ground invert; the IP dies.
+   (Tried it. See scripts/ink-to-transparent.py for the write-up.)
+
+   So the art stays as drawn, on a light panel. The PNGs are genuinely
+   transparent, which buys the thing a white box could not: 小J overflows the
+   panel edge instead of sitting inside a hard white rectangle. */
+.figrow {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 52px;
+  align-items: center;
+  margin: 72px 0;
+}
+.figrow.flip { grid-template-columns: 380px 1fr; }
+.figrow.flip .figrow-art { order: -1; }
+
+.figrow-art {
+  position: relative;
+  background: #F3F0E8;
+  border: 1px solid rgba(232, 228, 220, 0.12);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  aspect-ratio: 1 / 1;
+}
+.figrow-art::before {           /* the pin */
+  content: '';
+  position: absolute;
+  top: -5px; left: 50%;
+  transform: translateX(-50%);
+  width: 10px; height: 10px;
+  background: var(--signal);
+  border-radius: 50%;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+.figrow-art img {
+  display: block;
+  width: 112%;                  /* overflow the panel — only possible with real alpha */
+  height: auto;
+  margin: -6% 0 0 -6%;
+  position: relative;
+  z-index: 1;
+}
+
+.figrow-text .n {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--signal);
+  font-weight: 500;
+  display: block;
+  margin-bottom: 14px;
+}
+.figrow-text h3 {
+  font-family: var(--serif), var(--han);
+  font-size: 27px;
+  margin-bottom: 14px;
+}
+.figrow-text p {
+  font-size: 14px;
+  line-height: 1.85;
+  margin: 0;
+  max-width: 46ch;
+}
+
+@media (max-width: 860px) {
+  /* stack: text first, art below it */
+  .figrow, .figrow.flip { grid-template-columns: 1fr; gap: 30px; margin: 52px 0; }
+  .figrow.flip .figrow-art { order: 0; }
+  .figrow-art { max-width: 420px; }
+}
+
 /* sketch */
 figure.sketch { margin: 0; }
 figure.sketch img {
