@@ -164,6 +164,44 @@ nav.top a.link[aria-current]::after {
 .nav-scroll { display: flex; gap: 26px; overflow-x: auto; scrollbar-width: none; }
 .nav-scroll::-webkit-scrollbar { display: none; }
 
+/* ---------- language toggle ---------- */
+.lang {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  margin-left: 22px;
+  flex-shrink: 0;
+}
+.lang-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  padding: 6px 11px;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color .18s, background .18s;
+  line-height: 1.5;
+}
+.lang-btn + .lang-btn { border-left: 1px solid var(--line); }
+.lang-btn:hover { color: var(--paper); }
+.lang-btn[aria-pressed="true"] {
+  background: var(--signal);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Chinese needs a different serif stack and slightly tighter display sizes —
+   Instrument Serif has no CJK glyphs, so headings would silently fall back. */
+:root[data-lang="zh"] {
+  --serif: 'Instrument Serif', 'Songti SC', 'Source Han Serif SC', Georgia, serif;
+}
+/* `ch` is sized off the Latin "0" glyph, so a ch-based max-width clips CJK
+   headlines mid-word. Size the Chinese headline in `em` instead. */
+:root[data-lang="zh"] .hero h1 { max-width: 10em; }
+:root[data-lang="en"] .hero h1 { max-width: 18ch; }
+
 /* ---------- hero ---------- */
 .hero { padding: 120px 0 90px; position: relative; }
 .hero .kicker {

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>蓝图 — Self-FDE WorkBench</title>
-<meta name="description" content="从 FDE 到 ANE 的完整思路：三种角色、三个操作系统、一个工作台。附原始手绘草图与逐字存档。">
+<title data-zh="蓝图 — Self-FDE WorkBench">Blueprint — Self-FDE WorkBench</title>
+<meta name="description" content="The whole line of thought from FDE to ANE: three roles, three operating systems, one workbench. With the original hand sketch and a verbatim archive." data-zh="从 FDE 到 ANE 的完整思路：三种角色、三个操作系统、一个工作台。附原始手绘草图与逐字存档。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230A0B0D'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23FF6B35'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/assets/style.css">
 </head>
@@ -14,14 +14,18 @@
   <div class="wrap">
     <a class="brand" href="/"><span class="dot"></span>SELF-FDE / WORKBENCH</a>
     <div class="nav-scroll">
-      <a class="link" href="/#thesis">主张</a>
-      <a class="link" href="/#map">全景图</a>
-      <a class="link" href="/roles/expresser.html">表达者</a>
-      <a class="link" href="/roles/innovator.html">创新者</a>
-      <a class="link" href="/roles/builder.html">建设者</a>
-      <a class="link" href="/os.html">三个操作系统</a>
-      <a class="link" href="/vision.html" aria-current="page">蓝图</a>
+      <a class="link" href="/#thesis" data-zh="主张">Thesis</a>
+      <a class="link" href="/#map" data-zh="全景图">The Map</a>
+      <a class="link" href="/roles/expresser.html" data-zh="表达者">Expresser</a>
+      <a class="link" href="/roles/innovator.html" data-zh="创新者">Innovator</a>
+      <a class="link" href="/roles/builder.html" data-zh="建设者">Builder</a>
+      <a class="link" href="/os.html" data-zh="三个操作系统">Three OS</a>
+      <a class="link" href="/vision.html" aria-current="page" data-zh="蓝图">Blueprint</a>
       <a class="link" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">GitHub ↗</a>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button class="lang-btn" data-lang="en" aria-pressed="true">EN</button>
+      <button class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
     </div>
   </div>
 </nav>
@@ -30,10 +34,10 @@
 <header class="hero" style="padding-bottom:48px">
   <div class="wrap">
     <div class="kicker rise d1">BLUEPRINT / <b>2026-07-12</b></div>
-    <h1 class="rise d2" style="max-width:14ch">一页笔记本，<br>和它<span class="glow">展开</span>的样子</h1>
-    <p class="lede rise d3">
-      下面是完整的思路。观点会迭代，所以我们把讲这页图时说的每一句话都<b>逐字存了档</b>——
-      因为当时怎么想的，值得留下。
+    <h1 class="rise d2" style="max-width:14ch" data-zh="一页笔记本，<br>和它<span class=&quot;glow&quot;>展开</span>的样子">One notebook page,<br>and what it <span class="glow">unfolds</span> into</h1>
+    <p class="lede rise d3" data-zh="下面是完整的思路。观点会迭代，所以我们把讲这页图时说的每一句话都<b>逐字存了档</b>——因为当时怎么想的，值得留下。">
+      Below is the whole line of thought. Views will change, so every sentence spoken while explaining this page
+      was <b>archived verbatim</b> — because how we thought at the time is worth keeping.
     </p>
   </div>
 </header>
@@ -41,8 +45,8 @@
 <section style="padding-top:0;border-top:0">
   <div class="wrap">
     <figure class="sketch io" style="max-width:900px">
-      <img src="/assets/sketch.jpg" alt="2026-07-12 原始手绘草图">
-      <figcaption>Fig.0 — 原始手绘草图 · 2026-07-12（悬停查看原件）</figcaption>
+      <img src="/assets/sketch.jpg" alt="Original hand-drawn sketch, 2026-07-12">
+      <figcaption data-zh="Fig.0 — 原始手绘草图 · 2026-07-12（悬停查看原件）">Fig.0 — the original sketch · 2026-07-12 (hover to see it as drawn)</figcaption>
     </figure>
   </div>
 </section>
@@ -51,79 +55,79 @@
   <div class="wrap">
     <div class="prose io">
       <div class="eyebrow">00</div>
-      <h2 class="serif" style="border-top:0;padding-top:16px">一句话</h2>
-      <p><strong>AI 的下一站不是更聪明的模型，是把模型送进每一个真实场景。</strong></p>
-      <p>干这件事的人，过去叫 FDE；未来叫 <strong>ANE — AI Native Engineer</strong>。这个仓库，是给 ANE 的工作台。</p>
+      <h2 class="serif" style="border-top:0;padding-top:16px" data-zh="一句话">In one line</h2>
+      <p data-zh="<strong>AI 的下一站不是更聪明的模型，是把模型送进每一个真实场景。</strong>"><strong>AI's next stop isn't a smarter model. It's getting the model into every real-world context.</strong></p>
+      <p data-zh="干这件事的人，过去叫 FDE；未来叫 <strong>ANE — AI Native Engineer</strong>。这个仓库，是给 ANE 的工作台。">The people who do this used to be called FDEs. Next, they're <strong>ANEs — AI Native Engineers</strong>. This repository is their workbench.</p>
 
       <div class="eyebrow" style="margin-top:60px">01</div>
-      <h2 class="serif">从 FDE 到 ANE</h2>
-      <h3>为什么 FDE 突然火了</h3>
-      <p>AI 已经成熟到必须走出「聊天框」和「开发者圈」，去服务真实的商业组织和其他组织。这是 AI 发展阶段的需求造成的——<strong>和当年 ERP 信息化的路程一模一样</strong>。</p>
-      <p>FDE（Forward Deployed Engineer）这个词是 Palantir 在 2010 年前后发明的。它的本质是把苦活脏活累活制度化：<strong>你必须到客户的现场和内部，才能准确识别真实的商业逻辑与流程</strong>，才能提炼、优化，先给出解决方案，再抽象为他们的产品。</p>
+      <h2 class="serif" data-zh="从 FDE 到 ANE">From FDE to ANE</h2>
+      <h3 data-zh="为什么 FDE 突然火了">Why FDE suddenly caught fire</h3>
+      <p data-zh="AI 已经成熟到必须走出「聊天框」和「开发者圈」，去服务真实的商业组织和其他组织。这是 AI 发展阶段的需求造成的——<strong>和当年 ERP 信息化的路程一模一样</strong>。">AI has matured to the point where it has to walk out of the chat box and out of the developer bubble, and go serve real businesses and other organizations. This is what the current stage of AI demands — <strong>exactly the same road ERP and enterprise IT walked years ago</strong>.</p>
+      <p data-zh="FDE（Forward Deployed Engineer）这个词是 Palantir 在 2010 年前后发明的。它的本质是把苦活脏活累活制度化：<strong>你必须到客户的现场和内部，才能准确识别真实的商业逻辑与流程</strong>，才能提炼、优化，先给出解决方案，再抽象为他们的产品。">FDE — Forward Deployed Engineer — is a term Palantir coined around 2010. At bottom it institutionalizes the grunt work: <strong>you have to get on site and inside the customer before you can accurately read the real business logic and workflow</strong>, before you can distill it, improve it, deliver a solution first and abstract it into their product second.</p>
 
-      <h3>ANE 的核心假设</h3>
-      <p>我们认为这个角色会持续存在很久很久——久到它不该再叫 FDE。它是 <strong>AI Native Engineer（ANE）</strong>。它和 FDE 的核心区别是：<strong>不一定要驻场</strong>。</p>
-      <p>我们为 ANE 提供一个流程模型和相关的指导帮助，也就是这个 <strong>WorkBench</strong>，让他们能快速切入不同领域：个体、社区、商业组织、城市。</p>
-      <p>这个假设大概率是成立的。我们只是给了它一个新的名字，和一套新的工作流程。</p>
+      <h3 data-zh="ANE 的核心假设">The core assumption behind ANE</h3>
+      <p data-zh="我们认为这个角色会持续存在很久很久——久到它不该再叫 FDE。它是 <strong>AI Native Engineer（ANE）</strong>。它和 FDE 的核心区别是：<strong>不一定要驻场</strong>。">We think this role will last a very long time — long enough that it shouldn't be called FDE anymore. It is the <strong>AI Native Engineer (ANE)</strong>. The core difference from an FDE: <strong>it doesn't have to be forward-deployed</strong>.</p>
+      <p data-zh="我们为 ANE 提供一个流程模型和相关的指导帮助，也就是这个 <strong>WorkBench</strong>，让他们能快速切入不同领域：个体、社区、商业组织、城市。">We give the ANE a process model and the guidance that goes with it — this <strong>WorkBench</strong> — so they can cut into any domain fast: individuals, communities, businesses, cities.</p>
+      <p data-zh="这个假设大概率是成立的。我们只是给了它一个新的名字，和一套新的工作流程。">This assumption most likely holds. All we did was give it a new name and a new way of working.</p>
 
       <div class="eyebrow" style="margin-top:60px">02</div>
-      <h2 class="serif">前提推演</h2>
-      <p>如果 AI 能让人类社会的生产力成本极度降低，以至于<strong>接近电费的价格</strong>，那所有人都要思考一个新问题：<strong>当我的岗位被 AI 取代，我究竟还能干什么？</strong></p>
-      <p>这个预判没有严谨的科学论证，但它来自个人的经验观察和各方信息的反馈与分析。</p>
+      <h2 class="serif" data-zh="前提推演">The premise</h2>
+      <p data-zh="如果 AI 能让人类社会的生产力成本极度降低，以至于<strong>接近电费的价格</strong>，那所有人都要思考一个新问题：<strong>当我的岗位被 AI 取代，我究竟还能干什么？</strong>">If AI drives the cost of productivity in human society down so far that it <strong>approaches the price of electricity</strong>, then everyone has to face a new question: <strong>when AI takes my job, what is left for me to do?</strong></p>
+      <p data-zh="这个预判没有严谨的科学论证，但它来自个人的经验观察和各方信息的反馈与分析。">This forecast has no rigorous scientific proof behind it. It comes from personal observation and from the feedback and analysis of many sources.</p>
 
-      <h3>先说不会消失的</h3>
-      <p>炸油条的、面包店、一切服务业，一定会永远存在——几千年都是这样。</p>
-      <p>因为它不仅仅满足效率。我去吃一个面包，还有效率更高的方式——给你注射一支营养剂。那为什么大部分人都不会去打针？<strong>因为人带有固有的习惯和情感诉求，只有这种东西才塑造了「你是一个人」。</strong>当你把这些都放弃的时候，人味儿就消失了。</p>
+      <h3 data-zh="先说不会消失的">First, what won't disappear</h3>
+      <p data-zh="炸油条的、面包店、一切服务业，一定会永远存在——几千年都是这样。">The person frying dough sticks, the bakery, all of service work — they will always exist. They have for thousands of years.</p>
+      <p data-zh="因为它不仅仅满足效率。我去吃一个面包，还有效率更高的方式——给你注射一支营养剂。那为什么大部分人都不会去打针？<strong>因为人带有固有的习惯和情感诉求，只有这种东西才塑造了「你是一个人」。</strong>当你把这些都放弃的时候，人味儿就消失了。">Because they don't exist to satisfy efficiency. I go eat a piece of bread; there is a far more efficient way — inject you with a shot of nutrients. So why will most people never take the shot? <strong>Because humans carry ingrained habits and emotional needs, and only that kind of thing makes “you a person.”</strong> Give all of it up, and the human flavor is gone.</p>
 
-      <h3>会被重构的是商业驱动的岗位</h3>
-      <p>那些为了追求极致商业利益、无限提升效率（协作效率、生产效率）而存在的岗位。在那里，我们认为只有三种角色留下了核心价值。</p>
+      <h3 data-zh="会被重构的是商业驱动的岗位">What gets restructured is commercially driven work</h3>
+      <p data-zh="那些为了追求极致商业利益、无限提升效率（协作效率、生产效率）而存在的岗位。在那里，我们认为只有三种角色留下了核心价值。">The roles that exist purely in pursuit of maximum commercial gain and endlessly rising efficiency — efficiency of collaboration, efficiency of production. There, we believe only three roles retain core value.</p>
 
       <div class="eyebrow" style="margin-top:60px">03</div>
-      <h2 class="serif">三种角色</h2>
+      <h2 class="serif" data-zh="三种角色">The three roles</h2>
 
-      <h3>Expresser 表达者</h3>
-      <p>AI 不会说「这件衣服很好看」「这个饭店味道不错」。<strong>AI 不会说的，因为它不是人，就这么简单。</strong>它表达不出人的情感，因为它不是人。</p>
-      <p>所以表达者会有很大的生存空间，或者说更多的想象力。KOL、以及任何积极建立自己 IP 与形象、去表达真实感受的人——未来会有自己的一席之地，甚至形成自己的经济闭环。</p>
-      <a class="btn" href="/roles/expresser.html">给表达者的工具 →</a>
+      <h3 data-zh="Expresser 表达者">Expresser</h3>
+      <p data-zh="AI 不会说「这件衣服很好看」「这个饭店味道不错」。<strong>AI 不会说的，因为它不是人，就这么简单。</strong>它表达不出人的情感，因为它不是人。">AI will never say “that dress looks great” or “the food at this place is good.” <strong>AI won't say it, because it isn't a person. It really is that simple.</strong> It cannot express human feeling, because it isn't human.</p>
+      <p data-zh="所以表达者会有很大的生存空间，或者说更多的想象力。KOL、以及任何积极建立自己 IP 与形象、去表达真实感受的人——未来会有自己的一席之地，甚至形成自己的经济闭环。">So the expresser has plenty of room to live — plenty of room to imagine. KOLs, and anyone actively building their own IP and persona to express what they truly feel, will have a place of their own, and can even close their own economic loop.</p>
+      <a class="btn" href="/roles/expresser.html" data-zh="给表达者的工具 →">Tools for Expressers →</a>
 
-      <h3 style="margin-top:44px">Innovator 创新者</h3>
-      <p>当他有一个 idea，却发现当前的工具、社会环境、沟通方式、学习方式，无法满足自己预想的那种美好情形时——<strong>他会自己动手把这个产品、流程、协作搭出来。</strong></p>
-      <p>非常明显的例子：大模型出来之后，ChatGPT 没有做 coding agent，是 Boris（Anthropic）去做了，而且扎根了数年。</p>
-      <p><strong>创新者和效仿者的核心区别，是创新者对未来充满坚定的信心。</strong>很多人都没意识到这一点的时候，他已经开始披荆斩棘，为人类开辟新的道路。效仿者看到的是「原来做 coding agent 能赚很多钱」，他没看到全地图都是黑雾的时候有人趟出了一条路。效仿者能赚到钱，但他没有创新者伟大。</p>
-      <p>创新不必宏大，小一点的创新也没问题。只要是你自己的 idea——尤其在这个时代，在 AI 的加持下，<strong>从 idea 到产品，可能就是一个晚上的事。</strong>思考者、探索者，都是这一类角色的称呼。</p>
-      <a class="btn" href="/roles/innovator.html">给创新者的支持 →</a>
+      <h3 style="margin-top:44px" data-zh="Innovator 创新者">Innovator</h3>
+      <p data-zh="当他有一个 idea，却发现当前的工具、社会环境、沟通方式、学习方式，无法满足自己预想的那种美好情形时——<strong>他会自己动手把这个产品、流程、协作搭出来。</strong>">When they have an idea, and find that today's tools, social conditions, ways of communicating and ways of learning cannot reach the better state they pictured — <strong>they will go and build that product, that process, that collaboration themselves.</strong></p>
+      <p data-zh="非常明显的例子：大模型出来之后，ChatGPT 没有做 coding agent，是 Boris（Anthropic）去做了，而且扎根了数年。">A very clear example: after the large models arrived, ChatGPT didn't build a coding agent. Boris (Anthropic) did — and stayed rooted in it for years.</p>
+      <p data-zh="<strong>创新者和效仿者的核心区别，是创新者对未来充满坚定的信心。</strong>很多人都没意识到这一点的时候，他已经开始披荆斩棘，为人类开辟新的道路。效仿者看到的是「原来做 coding agent 能赚很多钱」，他没看到全地图都是黑雾的时候有人趟出了一条路。效仿者能赚到钱，但他没有创新者伟大。"><strong>What separates an innovator from an imitator is the innovator's unshakable conviction about the future.</strong> While most people still haven't noticed, they are already hacking through the thorns, opening a new road for the rest of us. What the imitator sees is “so building a coding agent makes a lot of money.” What the imitator did not see was someone walking a path when the whole map was still fog. The imitator can make money. But he isn't as great as the innovator.</p>
+      <p data-zh="创新不必宏大，小一点的创新也没问题。只要是你自己的 idea——尤其在这个时代，在 AI 的加持下，<strong>从 idea 到产品，可能就是一个晚上的事。</strong>思考者、探索者，都是这一类角色的称呼。">Innovation doesn't have to be grand. Small innovations are fine too. All that matters is that the idea is yours — and in this era, with AI behind you, <strong>going from idea to product may take a single night.</strong> Thinker, explorer: these are all names for the same kind of role.</p>
+      <a class="btn" href="/roles/innovator.html" data-zh="给创新者的支持 →">Support for Innovators →</a>
 
-      <h3 style="margin-top:44px">Builder 建设者（= ANE）</h3>
-      <p>有了创新者的引领，我们可以使用他们提供的更好的工具，去帮助更多实际场景落地。</p>
-      <p>小红书上有很多女生、文科生，什么都不懂，但因为对某个困境有很深入的思考，就做出了很棒的产品。他们包含了创新者的一些要素，但更多的是<strong>把前行的创新者提供的便利和基点作为起点</strong>，去建设细节的、分支的场景，让社会变得更美好。</p>
-      <p>哪怕有一部分效仿、模仿和学习，我觉得都没有问题。<strong>建设者本身要解决的，就是和普通人、普通组织息息相关的小问题。而这些小问题，对具体的人来说，可能是每天都在经受的痛苦。</strong></p>
-      <a class="btn" href="/roles/builder.html">成为 ANE →</a>
+      <h3 style="margin-top:44px" data-zh="Builder 建设者（= ANE）">Builder (= ANE)</h3>
+      <p data-zh="有了创新者的引领，我们可以使用他们提供的更好的工具，去帮助更多实际场景落地。">With innovators out front, we can take the better tools they hand us and land many more real scenarios.</p>
+      <p data-zh="小红书上有很多女生、文科生，什么都不懂，但因为对某个困境有很深入的思考，就做出了很棒的产品。他们包含了创新者的一些要素，但更多的是<strong>把前行的创新者提供的便利和基点作为起点</strong>，去建设细节的、分支的场景，让社会变得更美好。">On Xiaohongshu there are plenty of women and humanities majors who know nothing technical, yet shipped excellent products because they thought very hard about one particular predicament. They carry some of the innovator in them, but mostly they <strong>take the conveniences and the base camp left by the innovators ahead as their starting point</strong>, and go build the detailed, branching scenarios that make society better.</p>
+      <p data-zh="哪怕有一部分效仿、模仿和学习，我觉得都没有问题。<strong>建设者本身要解决的，就是和普通人、普通组织息息相关的小问题。而这些小问题，对具体的人来说，可能是每天都在经受的痛苦。</strong>">Even if part of it is copying, imitating and learning, I think that's completely fine. <strong>What a builder solves is, by definition, the small problems bound up with ordinary people and ordinary organizations. And those small problems are, for the specific person living them, a pain endured every single day.</strong></p>
+      <a class="btn" href="/roles/builder.html" data-zh="成为 ANE →">Become an ANE →</a>
 
-      <h3 style="margin-top:44px">三者可叠加</h3>
-      <p>ANE 是不是创作者？可能他也是。是不是表达者？可能他也是个 YouTuber。<strong>这三者并不泾渭分明，相互之间是可以叠加的。</strong></p>
-      <p>我希望每一个人，都能成为其中的一个角色，或多个角色。</p>
+      <h3 style="margin-top:44px" data-zh="三者可叠加">The three stack</h3>
+      <p data-zh="ANE 是不是创作者？可能他也是。是不是表达者？可能他也是个 YouTuber。<strong>这三者并不泾渭分明，相互之间是可以叠加的。</strong>">Is an ANE also a creator? Maybe. Also an expresser? Maybe they're a YouTuber too. <strong>The three are not mutually exclusive; they stack.</strong></p>
+      <p data-zh="我希望每一个人，都能成为其中的一个角色，或多个角色。">I hope every single person can become one of these roles — or several of them.</p>
 
       <div class="eyebrow" style="margin-top:60px">04</div>
-      <h2 class="serif">三个操作系统</h2>
-      <p>需求侧有三层：<strong>个体 / 中小组织 / 城市</strong>。对应三个 Apache 2.0 开源系统：<code>Sin90</code>、<code>Cos72</code>、<code>CityOS</code>。</p>
-      <p>个体每天都在跑一个环：Information → Action → Connection → Communication → 再回到 Information。生活、学习、社交、工作，全在这个环里。组织的核心则是三件事：知识库、组织工作流、组织大脑（大模型 API + 自训练 LoRA），外加各类 Connector/Agent。城市，则是让组织之间涌现出新的协作，最终城市本身变成一个智能体。</p>
-      <a class="btn" href="/os.html">展开三个系统 →</a>
+      <h2 class="serif" data-zh="三个操作系统">Three operating systems</h2>
+      <p data-zh="需求侧有三层：<strong>个体 / 中小组织 / 城市</strong>。对应三个 Apache 2.0 开源系统：<code>Sin90</code>、<code>Cos72</code>、<code>CityOS</code>。">The demand side has three layers: <strong>individuals / small organizations / cities</strong>. They map to three Apache 2.0 open systems: <code>Sin90</code>, <code>Cos72</code>, <code>CityOS</code>.</p>
+      <p data-zh="个体每天都在跑一个环：Information → Action → Connection → Communication → 再回到 Information。生活、学习、社交、工作，全在这个环里。组织的核心则是三件事：知识库、组织工作流、组织大脑（大模型 API + 自训练 LoRA），外加各类 Connector/Agent。城市，则是让组织之间涌现出新的协作，最终城市本身变成一个智能体。">Every day, an individual runs one loop: Information → Action → Connection → Communication → and back to Information. Life, learning, social life, work — all of it inside this loop. For an organization the core is three things: the knowledge base, the organizational workflow, and the organizational brain (an LLM API + a self-trained LoRA), plus connectors and agents of all kinds. For a city, it is to let new collaboration emerge between organizations, until the city itself becomes an agent.</p>
+      <a class="btn" href="/os.html" data-zh="展开三个系统 →">Explore the three systems →</a>
 
       <div class="eyebrow" style="margin-top:60px">05</div>
-      <h2 class="serif">这个仓库做什么</h2>
-      <p>当个体、中小组织、城市想让自己变成 AI Native 时，他们会去找谁？——<strong>找表达者、创新者、建设者。</strong></p>
-      <p>而这个仓库站在中间，为双方提供<strong>数字公共物品</strong>：Sin90、Cos72、CityOS，以及一系列 WorkBench。</p>
+      <h2 class="serif" data-zh="这个仓库做什么">What this repository does</h2>
+      <p data-zh="当个体、中小组织、城市想让自己变成 AI Native 时，他们会去找谁？——<strong>找表达者、创新者、建设者。</strong>">When an individual, a small organization or a city wants to become AI native, who do they go find? — <strong>the expressers, the innovators, the builders.</strong></p>
+      <p data-zh="而这个仓库站在中间，为双方提供<strong>数字公共物品</strong>：Sin90、Cos72、CityOS，以及一系列 WorkBench。">This repository stands in the middle and gives both sides <strong>digital public goods</strong>: Sin90, Cos72, CityOS, and a series of WorkBenches.</p>
       <ul>
-        <li><strong>给表达者</strong>：一键发布 16 个平台——对普通人这是个障碍，我们提供免费开源的仓库，帮你一步跨过去。不限于此。</li>
-        <li><strong>给创新者</strong>：实验与研究对象的对接。想在制造业做事？我们对接制造业的中小组织和企业主，让他们讲出痛点，你去落地。</li>
-        <li><strong>给建设者</strong>：全流程支持——AI Native 如何选型、如何训练自己的小模型、Memory 在 Context 管理中如何落地、有哪些可选技术方案。</li>
+        <li data-zh="<strong>给表达者</strong>：一键发布 16 个平台——对普通人这是个障碍，我们提供免费开源的仓库，帮你一步跨过去。不限于此。"><strong>For Expressers</strong>: one-click publishing to 16 platforms — an obstacle for an ordinary person. We give you a free, open repository to step over it in one move. And not only that.</li>
+        <li data-zh="<strong>给创新者</strong>：实验与研究对象的对接。想在制造业做事？我们对接制造业的中小组织和企业主，让他们讲出痛点，你去落地。"><strong>For Innovators</strong>: matchmaking with subjects to experiment and research on. Want to do something in manufacturing? We connect you to small manufacturers and their owners, let them speak their pain, and you go ship it.</li>
+        <li data-zh="<strong>给建设者</strong>：全流程支持——AI Native 如何选型、如何训练自己的小模型、Memory 在 Context 管理中如何落地、有哪些可选技术方案。"><strong>For Builders</strong>: end-to-end support — how to choose your AI stack, how to train your own small model, how memory actually gets shipped inside context management, and what the technical options are.</li>
       </ul>
-      <p><strong>AuraAI 作为聚合 ANE 的组织，持续沉淀、交流、积累，从而帮助更多的人成为表达者、创新者和建设者。</strong></p>
+      <p data-zh="<strong>AuraAI 作为聚合 ANE 的组织，持续沉淀、交流、积累，从而帮助更多的人成为表达者、创新者和建设者。</strong>"><strong>AuraAI, as an organization that gathers ANEs, keeps accumulating and exchanging what it learns — so that more people can become Expressers, Innovators and Builders.</strong></p>
 
-      <h2 class="serif" style="margin-top:70px">存档</h2>
-      <p>本页内容整理自 2026-07-12 的手绘草图与口述。原始逐字稿完整保留在仓库中，未做删改。</p>
+      <h2 class="serif" style="margin-top:70px" data-zh="存档">The archive</h2>
+      <p data-zh="本页内容整理自 2026-07-12 的手绘草图与口述。原始逐字稿完整保留在仓库中，未做删改。">This page was assembled from the hand-drawn sketch and the spoken account of 2026-07-12. The original transcript is kept in full in the repository, unedited.</p>
       <div class="hero-actions">
-        <a class="btn primary" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench/blob/main/docs/TRANSCRIPT-2026-07-12.md">读逐字稿 <span>→</span></a>
+        <a class="btn primary" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench/blob/main/docs/TRANSCRIPT-2026-07-12.md" data-zh="读逐字稿 <span>→</span>">Read the transcript <span>→</span></a>
         <a class="btn" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench/blob/main/docs/VISION.md">VISION.md</a>
       </div>
     </div>
@@ -138,14 +142,15 @@
       <div>AuraAI · Mycelium Protocol · Apache 2.0</div>
     </div>
     <div class="links">
-      <a href="/">首页</a>
-      <a href="/os.html">操作系统</a>
-      <a href="/roles/builder.html">成为 ANE</a>
+      <a href="/" data-zh="首页">Home</a>
+      <a href="/os.html" data-zh="操作系统">Three OS</a>
+      <a href="/roles/builder.html" data-zh="成为 ANE">Become an ANE</a>
       <a href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">GitHub</a>
     </div>
   </div>
 </footer>
 
+<script src="/assets/i18n.js"></script>
 <script>
   const io = new IntersectionObserver((es) => {
     es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Self-FDE WorkBench — 给 AI Native Engineer 的工作台</title>
-<meta name="description" content="AI 的下一站不是更聪明的模型，是把模型送进每一个真实场景。干这件事的人，过去叫 FDE，未来叫 ANE。这是给他们的开源工作台。">
+<title data-zh="Self-FDE WorkBench — 给 AI Native Engineer 的工作台">Self-FDE WorkBench — A Workbench for AI Native Engineers</title>
+<meta name="description" content="AI's next stop isn't a smarter model. It's getting the model into every real-world context. The people who do that used to be called FDEs. Next, they're ANEs." data-zh="AI 的下一站不是更聪明的模型，是把模型送进每一个真实场景。干这件事的人，过去叫 FDE，未来叫 ANE。这是给他们的开源工作台。">
 <meta property="og:title" content="Self-FDE WorkBench">
-<meta property="og:description" content="FDE 的下一站是 ANE — AI Native Engineer。给表达者、创新者、建设者的开源工作台。">
+<meta property="og:description" content="The next stop after FDE is ANE — AI Native Engineer. An open workbench for Expressers, Innovators and Builders.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230A0B0D'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23FF6B35'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/assets/style.css">
 </head>
@@ -16,14 +16,18 @@
   <div class="wrap">
     <a class="brand" href="/"><span class="dot"></span>SELF-FDE / WORKBENCH</a>
     <div class="nav-scroll">
-      <a class="link" href="/#thesis">主张</a>
-      <a class="link" href="/#map">全景图</a>
-      <a class="link" href="/roles/expresser.html">表达者</a>
-      <a class="link" href="/roles/innovator.html">创新者</a>
-      <a class="link" href="/roles/builder.html">建设者</a>
-      <a class="link" href="/os.html">三个操作系统</a>
-      <a class="link" href="/vision.html">蓝图</a>
+      <a class="link" href="/#thesis" data-zh="主张">Thesis</a>
+      <a class="link" href="/#map" data-zh="全景图">The Map</a>
+      <a class="link" href="/roles/expresser.html" data-zh="表达者">Expresser</a>
+      <a class="link" href="/roles/innovator.html" data-zh="创新者">Innovator</a>
+      <a class="link" href="/roles/builder.html" data-zh="建设者">Builder</a>
+      <a class="link" href="/os.html" data-zh="三个操作系统">Three OS</a>
+      <a class="link" href="/vision.html" data-zh="蓝图">Blueprint</a>
       <a class="link" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">GitHub ↗</a>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button class="lang-btn" data-lang="en" aria-pressed="true">EN</button>
+      <button class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
     </div>
   </div>
 </nav>
@@ -33,24 +37,24 @@
 <!-- ══════════════ HERO ══════════════ -->
 <header class="hero">
   <div class="wrap">
-    <div class="kicker rise d1">AuraAI · Mycelium Protocol · <b>Apache 2.0</b></div>
-    <h1 class="rise d2">
-      工程师不必<span class="strike">驻场</span><br>
-      但必须<span class="glow">在场</span>
+    <div class="kicker rise d1" data-zh="AuraAI · Mycelium Protocol · <b>Apache 2.0</b>">AuraAI · Mycelium Protocol · <b>Apache 2.0</b></div>
+    <h1 class="rise d2" data-zh="工程师不必<span class=&quot;strike&quot;>驻场</span><br>但必须<span class=&quot;glow&quot;>在场</span>">
+      The engineer no longer has to be <span class="strike">deployed</span><br>
+      but must still be <span class="glow">present</span>
     </h1>
-    <p class="lede rise d3">
-      AI 的下一站不是更聪明的模型，是<b>把模型送进每一个真实场景</b>。
-      过去干这件事的人叫 <b>FDE</b>——Palantir 2010 年发明的词，本质是把苦活脏活累活制度化：
-      你必须进到客户内部，才能看见真实的卡点。<br><br>
-      我们认为这个角色会长期存在，久到不该再叫 FDE。
-      它是 <b>ANE — AI Native Engineer</b>：不驻场，但深谙 AI 的能力域与边界，
-      能为<b>个体、中小组织、城市</b>把痛点抽象成产品。<br><br>
-      这个仓库，是给他们的工作台。
+    <p class="lede rise d3" data-zh="AI 的下一站不是更聪明的模型，是<b>把模型送进每一个真实场景</b>。过去干这件事的人叫 <b>FDE</b>——Palantir 2010 年发明的词，本质是把苦活脏活累活制度化：你必须进到客户内部，才能看见真实的卡点。<br><br>我们认为这个角色会长期存在，久到不该再叫 FDE。它是 <b>ANE — AI Native Engineer</b>：不驻场，但深谙 AI 的能力域与边界，能为<b>个体、中小组织、城市</b>把痛点抽象成产品。<br><br>这个仓库，是给他们的工作台。">
+      AI's next stop isn't a smarter model. It's <b>getting the model into every real-world context</b>.
+      The people who did this were called <b>FDEs</b> — a term Palantir coined around 2010. The job, at bottom,
+      was institutionalized grunt work: you had to get inside the customer to see where things actually jam.<br><br>
+      We think this role outlasts the name. It's the <b>ANE — AI Native Engineer</b>: not forward-deployed,
+      but fluent in what AI can and cannot do, and able to turn pain into product for
+      <b>individuals, small organizations, and cities</b>.<br><br>
+      This repository is their workbench.
     </p>
     <div class="hero-actions rise d4">
-      <a class="btn primary" href="#map">看全景图 <span>→</span></a>
-      <a class="btn" href="/roles/builder.html">成为 ANE</a>
-      <a class="btn" href="/vision.html">读完整蓝图</a>
+      <a class="btn primary" href="#map" data-zh="看全景图 <span>→</span>">See the map <span>→</span></a>
+      <a class="btn" href="/roles/builder.html" data-zh="成为 ANE">Become an ANE</a>
+      <a class="btn" href="/vision.html" data-zh="读完整蓝图">Read the blueprint</a>
     </div>
   </div>
 </header>
@@ -59,46 +63,63 @@
 <section id="thesis">
   <div class="wrap">
     <div class="sec-head io">
-      <div class="eyebrow">01 / 前提推演</div>
-      <h2 class="serif">当生产力的成本逼近电费，<br>你还能干什么？</h2>
-      <p>
-        这个预判没有严谨的科学论证，是从个人观察与各方信息反馈里长出来的结论。
-        但它决定了这个仓库的一切设计。
+      <div class="eyebrow" data-zh="01 / 前提推演">01 / The Premise</div>
+      <h2 class="serif" data-zh="当生产力的成本逼近电费，<br>你还能干什么？">When the cost of productivity<br>approaches the price of electricity,<br>what's left for you to do?</h2>
+      <p data-zh="这个预判没有严谨的科学论证，是从个人观察与各方信息反馈里长出来的结论。但它决定了这个仓库的一切设计。">
+        This forecast has no rigorous scientific proof behind it. It grew out of personal observation and
+        the feedback of many sources. But it determines everything about how this repository is designed.
       </p>
     </div>
 
     <div class="quote io">
-      <p>先说不会消失的：炸油条的、面包店、一切服务业，永远存在。吃面包比打营养针效率低得多，但大部分人不会去打针——因为人有固有的习惯和情感诉求，正是这些东西塑造了「你是个人」。放弃了它们，人味儿也就没了。</p>
-      <cite>— 关于什么不会被替代</cite>
+      <p data-zh="先说不会消失的：炸油条的、面包店、一切服务业，永远存在。吃面包比打营养针效率低得多，但大部分人不会去打针——因为人有固有的习惯和情感诉求，正是这些东西塑造了「你是个人」。放弃了它们，人味儿也就没了。">
+        First, what won't disappear: the person frying dough sticks, the bakery, all of service work. Eating bread
+        is far less efficient than an injection of nutrients — yet most people will never take the shot. Because
+        humans carry ingrained habits and emotional needs, and it is precisely those things that make you a person.
+        Give them up, and the human flavor goes with them.
+      </p>
+      <cite data-zh="— 关于什么不会被替代">— On what cannot be replaced</cite>
     </div>
 
-    <p class="io" style="max-width:66ch">
-      会被重构的，是<strong>商业驱动的岗位</strong>——那些为了追求极致效率而存在的岗位。
-      在那里，我们认为只有三种角色留下了核心价值。而且它们<strong>并不泾渭分明，可以叠加</strong>：
-      ANE 可能同时是创新者，也可能是个 YouTuber。
+    <p class="io" style="max-width:66ch" data-zh="会被重构的，是<strong>商业驱动的岗位</strong>——那些为了追求极致效率而存在的岗位。在那里，我们认为只有三种角色留下了核心价值。而且它们<strong>并不泾渭分明，可以叠加</strong>：ANE 可能同时是创新者，也可能是个 YouTuber。">
+      What does get restructured is <strong>commercially driven work</strong> — the roles that exist purely in pursuit
+      of extreme efficiency. There, we believe only three roles retain core value. And they are
+      <strong>not mutually exclusive; they stack</strong>: an ANE may also be an Innovator, and may also be a YouTuber.
     </p>
 
     <div class="grid-3 io" style="margin-top:44px">
       <a class="card" href="/roles/expresser.html">
         <span class="idx">ROLE 01</span>
-        <h3>表达者</h3>
-        <div class="sub">Expresser · KOL / Blogger</div>
-        <p>AI 不会说「这件衣服真好看」「这家饭馆味道不错」。<strong>因为它不是人。</strong>它表达不出人的情感。真诚表达的人，有生存空间，有想象力，甚至能形成自己的经济闭环。</p>
-        <div class="go">我要表达 <span>→</span></div>
+        <h3 data-zh="表达者">Expresser</h3>
+        <div class="sub" data-zh="Expresser · KOL / Blogger">表达者 · KOL / Blogger</div>
+        <p data-zh="AI 不会说「这件衣服真好看」「这家饭馆味道不错」。<strong>因为它不是人。</strong>它表达不出人的情感。真诚表达的人，有生存空间，有想象力，甚至能形成自己的经济闭环。">
+          AI will never say “that dress looks great” or “the food at this place is good.”
+          <strong>Because it isn't a person.</strong> It cannot express human feeling. Those who express honestly
+          have room to live, room to imagine, and can even close their own economic loop.
+        </p>
+        <div class="go" data-zh="我要表达 <span>→</span>">I want to express <span>→</span></div>
       </a>
       <a class="card" href="/roles/innovator.html">
         <span class="idx">ROLE 02</span>
-        <h3>创新者</h3>
-        <div class="sub">Innovator · Thinker / Explorer</div>
-        <p>当现有工具满足不了他想象中的那个更好的世界，他会自己动手把它搭出来。<strong>创新者与效仿者的区别，是对未来坚定的信心</strong>——全地图都是黑雾时，有人趟出一条路。</p>
-        <div class="go">我有 idea <span>→</span></div>
+        <h3 data-zh="创新者">Innovator</h3>
+        <div class="sub" data-zh="Innovator · Thinker / Explorer">创新者 · Thinker / Explorer</div>
+        <p data-zh="当现有工具满足不了他想象中的那个更好的世界，他会自己动手把它搭出来。<strong>创新者与效仿者的区别，是对未来坚定的信心</strong>——全地图都是黑雾时，有人趟出一条路。">
+          When the tools that exist can't reach the better world they imagine, they go and build it themselves.
+          <strong>What separates an innovator from an imitator is unshakable conviction about the future</strong> —
+          when the whole map is fog, someone walks a path through it.
+        </p>
+        <div class="go" data-zh="我有 idea <span>→</span>">I have an idea <span>→</span></div>
       </a>
       <a class="card" href="/roles/builder.html">
         <span class="idx">ROLE 03</span>
-        <h3>建设者</h3>
-        <div class="sub">Builder · AI Native Engineer</div>
-        <p>站在创新者开辟的路上，落地真实场景的细节分支。<strong>建设者解决的是「小问题」——而这些小问题，对具体的人来说，是每天都在承受的痛苦。</strong></p>
-        <div class="go">我要落地 <span>→</span></div>
+        <h3 data-zh="建设者">Builder</h3>
+        <div class="sub" data-zh="Builder · AI Native Engineer">建设者 · AI Native Engineer</div>
+        <p data-zh="站在创新者开辟的路上，落地真实场景的细节分支。<strong>建设者解决的是「小问题」——而这些小问题，对具体的人来说，是每天都在承受的痛苦。</strong>">
+          Standing on the road the innovators cleared, they land the branching details of real scenarios.
+          <strong>Builders solve “small problems” — and those small problems are, for the specific person living
+          them, a pain endured every single day.</strong>
+        </p>
+        <div class="go" data-zh="我要落地 <span>→</span>">I want to ship <span>→</span></div>
       </a>
     </div>
   </div>
@@ -108,13 +129,16 @@
 <section id="map">
   <div class="wrap">
     <div class="sec-head io">
-      <div class="eyebrow">02 / 全景图</div>
-      <h2 class="serif">需求侧 · 三种角色 · ANE 工作循环</h2>
-      <p>左边是谁需要 AI Native，中间是他们该去找谁，右边是这个人怎么干活。底下那条，是我们提供的东西。</p>
+      <div class="eyebrow" data-zh="02 / 全景图">02 / The Map</div>
+      <h2 class="serif" data-zh="需求侧 · 三种角色 · ANE 工作循环">Demand side · Three roles · The ANE work loop</h2>
+      <p data-zh="左边是谁需要 AI Native，中间是他们该去找谁，右边是这个人怎么干活。底下那条，是我们提供的东西。">
+        On the left, who needs to become AI native. In the middle, who they should go find. On the right,
+        how that person actually works. The band along the bottom is what we provide.
+      </p>
     </div>
 
     <div class="diagram-frame io">
-      <svg viewBox="0 0 1200 665" role="img" aria-label="Self-FDE WorkBench 全景流程图">
+      <svg viewBox="0 0 1200 665" role="img" aria-label="Self-FDE WorkBench overview diagram">
         <defs>
           <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="rgba(232,228,220,0.45)"/>
@@ -127,144 +151,139 @@
           </marker>
         </defs>
 
-        <!-- ─────── ZONE A · 需求侧 ─────── -->
+        <!-- ─────── ZONE A · demand side ─────── -->
         <rect class="d-zone" x="24" y="58" width="336" height="392"/>
-        <text class="d-label" x="24" y="44">A · 需求侧 / WHO NEEDS AI NATIVE</text>
+        <text class="d-label" x="24" y="44" data-zh="A · 需求侧 / WHO NEEDS AI NATIVE">A · DEMAND SIDE / WHO NEEDS AI NATIVE</text>
 
-        <!-- 个体 -->
         <rect class="d-box" x="40" y="78" width="304" height="104" rx="2"/>
-        <text class="d-t" x="58" y="104">👤 个体</text>
-        <text class="d-t d-t-cool" x="58" y="104" text-anchor="start" dx="86" style="font-size:12px">→ Sin90</text>
+        <text class="d-t" x="58" y="104" data-zh="👤 个体">👤 Individual</text>
+        <text class="d-t d-t-cool" x="58" y="104" text-anchor="start" dx="118" style="font-size:12px">→ Sin90</text>
         <text class="d-t-s" x="58" y="130">Information → Action → Connection</text>
-        <text class="d-t-s" x="58" y="148">→ Communication → ⟲ 回到 Information</text>
-        <text class="d-t-s" x="58" y="168" style="fill:#7FDBCA;opacity:.75">生活 · 学习 · 社交 · 工作，都在这个环里</text>
+        <text class="d-t-s" x="58" y="148" data-zh="→ Communication → ⟲ 回到 Information">→ Communication → ⟲ back to Information</text>
+        <text class="d-t-s" x="58" y="168" style="fill:#7FDBCA;opacity:.75" data-zh="生活 · 学习 · 社交 · 工作，都在这个环里">Life · learning · social · work</text>
 
-        <!-- 组织 -->
         <rect class="d-box" x="40" y="200" width="304" height="124" rx="2"/>
-        <text class="d-t" x="58" y="226">🏢 社区 / 中小组织</text>
-        <text class="d-t d-t-cool" x="58" y="226" dx="170" style="font-size:12px">→ Cos72</text>
-        <text class="d-t-s" x="58" y="252">知识库 KB ⟵ 沉淀 ⟵ 组织工作流</text>
-        <text class="d-t-s" x="58" y="272">组织大脑 = 大模型 API + 自训练 LoRA</text>
-        <text class="d-t-s" x="58" y="292">Connectors / Sensors（各类 Agent）</text>
-        <text class="d-t-s" x="58" y="312" style="fill:#7FDBCA;opacity:.75">雇不起 FDE 的组织，能不能自己 FDE？</text>
+        <text class="d-t" x="58" y="226" data-zh="🏢 社区 / 中小组织">🏢 Community / SMB</text>
+        <text class="d-t d-t-cool" x="58" y="226" dx="162" style="font-size:12px">→ Cos72</text>
+        <text class="d-t-s" x="58" y="252" data-zh="知识库 KB ⟵ 沉淀 ⟵ 组织工作流">Knowledge base ⟵ sediment ⟵ org workflow</text>
+        <text class="d-t-s" x="58" y="272" data-zh="组织大脑 = 大模型 API + 自训练 LoRA">Org brain = LLM API + self-trained LoRA</text>
+        <text class="d-t-s" x="58" y="292" data-zh="Connectors / Sensors（各类 Agent）">Connectors / Sensors (agents of all kinds)</text>
+        <text class="d-t-s" x="58" y="312" style="fill:#7FDBCA;opacity:.75" data-zh="雇不起 FDE 的组织，能不能自己 FDE？">Can't afford an FDE — so be your own?</text>
 
-        <!-- 城市 -->
         <rect class="d-box" x="40" y="342" width="304" height="92" rx="2"/>
-        <text class="d-t" x="58" y="368">🏙 城市</text>
-        <text class="d-t d-t-cool" x="58" y="368" dx="90" style="font-size:12px">→ CityOS</text>
-        <text class="d-t-s" x="58" y="394">组织间协作 · 资源聚合 · 跨边界协作</text>
-        <text class="d-t-s" x="58" y="414" style="fill:#7FDBCA;opacity:.75">城市成为智能体，吸引资源与人才</text>
+        <text class="d-t" x="58" y="368" data-zh="🏙 城市">🏙 City</text>
+        <text class="d-t d-t-cool" x="58" y="368" dx="76" style="font-size:12px">→ CityOS</text>
+        <text class="d-t-s" x="58" y="394" data-zh="组织间协作 · 资源聚合 · 跨边界协作">Inter-org collaboration · resource pooling</text>
+        <text class="d-t-s" x="58" y="414" style="fill:#7FDBCA;opacity:.75" data-zh="城市成为智能体，吸引资源与人才">Becomes an agent; draws talent</text>
 
-        <!-- A → B -->
         <path class="d-arrow" d="M 352 256 L 404 256" marker-end="url(#ah)"/>
-        <text class="d-t-s" x="378" y="242" text-anchor="middle" style="font-size:9.5px">寻找</text>
+        <text class="d-t-s" x="378" y="242" text-anchor="middle" style="font-size:9.5px" data-zh="寻找">seeks</text>
 
-        <!-- ─────── ZONE B · 三种角色 ─────── -->
+        <!-- ─────── ZONE B · the three roles ─────── -->
         <rect class="d-zone" x="412" y="58" width="248" height="392"/>
-        <text class="d-label" x="412" y="44">B · 三种角色 / WHO CAN HELP</text>
+        <text class="d-label" x="412" y="44" data-zh="B · 三种角色 / WHO CAN HELP">B · THREE ROLES / WHO CAN HELP</text>
 
         <rect class="d-box d-box-cool" x="428" y="100" width="216" height="72" rx="2"/>
-        <text class="d-t d-t-cool" x="536" y="128" text-anchor="middle">Expresser 表达者</text>
-        <text class="d-t-s" x="536" y="150" text-anchor="middle">KOL / Blogger / 任何真诚表达的人</text>
+        <text class="d-t d-t-cool" x="536" y="128" text-anchor="middle" data-zh="Expresser 表达者">Expresser</text>
+        <text class="d-t-s" x="536" y="150" text-anchor="middle" data-zh="KOL / Blogger / 任何真诚表达的人">KOL / blogger / honest voices</text>
 
         <rect class="d-box d-box-cool" x="428" y="196" width="216" height="72" rx="2"/>
-        <text class="d-t d-t-cool" x="536" y="224" text-anchor="middle">Innovator 创新者</text>
-        <text class="d-t-s" x="536" y="246" text-anchor="middle">Thinker / Explorer / 趟出黑雾的人</text>
+        <text class="d-t d-t-cool" x="536" y="224" text-anchor="middle" data-zh="Innovator 创新者">Innovator</text>
+        <text class="d-t-s" x="536" y="246" text-anchor="middle" data-zh="Thinker / Explorer / 趟出黑雾的人">Thinker · explorer · pathfinder</text>
 
         <rect class="d-box d-box-hot" x="428" y="292" width="216" height="86" rx="2"/>
-        <text class="d-t d-t-hot" x="536" y="320" text-anchor="middle">Builder 建设者</text>
+        <text class="d-t d-t-hot" x="536" y="320" text-anchor="middle" data-zh="Builder 建设者">Builder</text>
         <text class="d-t" x="536" y="342" text-anchor="middle" style="font-size:12px">= ANE · AI Native Engineer</text>
-        <text class="d-t-s" x="536" y="362" text-anchor="middle">不驻场，但在场</text>
+        <text class="d-t-s" x="536" y="362" text-anchor="middle" data-zh="不驻场，但在场">Not deployed, but present</text>
 
-        <text class="d-t-s" x="536" y="404" text-anchor="middle" style="font-size:9.5px">三者可叠加 · 不泾渭分明</text>
+        <text class="d-t-s" x="536" y="404" text-anchor="middle" style="font-size:9.5px" data-zh="三者可叠加 · 不泾渭分明">The three stack · no hard borders</text>
 
-        <!-- B → C -->
         <path class="d-arrow-hot" d="M 652 335 L 706 335" marker-end="url(#ah-hot)"/>
-        <text class="d-t-s d-t-hot" x="679" y="321" text-anchor="middle" style="font-size:9.5px">如何干活</text>
+        <text class="d-t-s d-t-hot" x="679" y="321" text-anchor="middle" style="font-size:9.5px" data-zh="如何干活">method</text>
 
-        <!-- ─────── ZONE C · ANE 工作循环 ─────── -->
+        <!-- ─────── ZONE C · the ANE work loop ─────── -->
         <rect class="d-zone" x="714" y="58" width="462" height="392"/>
-        <text class="d-label" x="714" y="44">C · 供给侧 / ANE 工作循环</text>
+        <text class="d-label" x="714" y="44" data-zh="C · 供给侧 / ANE 工作循环">C · SUPPLY SIDE / THE ANE WORK LOOP</text>
 
-        <!-- 工程师能力（feeder） -->
         <rect class="d-box" x="730" y="196" width="132" height="72" rx="2"/>
-        <text class="d-t" x="796" y="224" text-anchor="middle" style="font-size:12px">已有 AI 能力</text>
-        <text class="d-t-s" x="796" y="246" text-anchor="middle" style="font-size:9.5px">架构 · 能力域 · 边界</text>
+        <text class="d-t" x="796" y="224" text-anchor="middle" style="font-size:12px" data-zh="已有 AI 能力">Existing AI</text>
+        <text class="d-t-s" x="796" y="246" text-anchor="middle" style="font-size:9px" data-zh="架构 · 能力域 · 边界">Arch · domain · limits</text>
 
         <rect class="d-box d-box-hot" x="730" y="292" width="132" height="72" rx="2"/>
-        <text class="d-t d-t-hot" x="796" y="316" text-anchor="middle" style="font-size:12px">新增 / 创新能力</text>
-        <text class="d-t-s" x="796" y="336" text-anchor="middle" style="font-size:9.5px">二次包装 · 能力组合</text>
-        <text class="d-t-s" x="796" y="352" text-anchor="middle" style="font-size:9.5px">新资源维度</text>
+        <text class="d-t d-t-hot" x="796" y="316" text-anchor="middle" style="font-size:12px" data-zh="新增 / 创新能力">New capability</text>
+        <text class="d-t-s" x="796" y="336" text-anchor="middle" style="font-size:9px" data-zh="二次包装 · 能力组合">Rewrap · compose</text>
+        <text class="d-t-s" x="796" y="352" text-anchor="middle" style="font-size:9px" data-zh="新资源维度">New resources</text>
 
-        <!-- 主链条 -->
         <rect class="d-box" x="920" y="78" width="240" height="56" rx="2"/>
-        <text class="d-t" x="1040" y="112" text-anchor="middle">企业 / 组织场景</text>
+        <text class="d-t" x="1040" y="112" text-anchor="middle" data-zh="企业 / 组织场景">Enterprise / org context</text>
 
         <path class="d-arrow" d="M 1040 138 L 1040 168" marker-end="url(#ah)"/>
-        <text class="d-t-s" x="1052" y="158" style="font-size:9.5px">深度沟通 · 客户必须参与</text>
+        <text class="d-t-s" x="1052" y="158" style="font-size:9px" data-zh="深度沟通 · 客户必须参与">Deep dialogue</text>
 
         <rect class="d-box d-box-hot" x="920" y="172" width="240" height="56" rx="2"/>
-        <text class="d-t d-t-hot" x="1040" y="199" text-anchor="middle">痛点 Pain Point</text>
-        <text class="d-t-s" x="1040" y="218" text-anchor="middle" style="font-size:9.5px">反复沟通才能找到真正的卡点</text>
+        <text class="d-t d-t-hot" x="1040" y="199" text-anchor="middle" data-zh="痛点 Pain Point">Pain point</text>
+        <text class="d-t-s" x="1040" y="218" text-anchor="middle" style="font-size:9px" data-zh="反复沟通才能找到真正的卡点">Only repeated talks find it</text>
 
         <path class="d-arrow" d="M 1040 232 L 1040 262" marker-end="url(#ah)"/>
-        <text class="d-t-s" x="1052" y="252" style="font-size:9.5px">结合组织工作流</text>
+        <text class="d-t-s" x="1052" y="252" style="font-size:9px" data-zh="结合组织工作流">With org workflow</text>
 
         <rect class="d-box" x="920" y="266" width="240" height="56" rx="2"/>
-        <text class="d-t" x="1040" y="293" text-anchor="middle">解决方案</text>
-        <text class="d-t-s" x="1040" y="312" text-anchor="middle" style="font-size:9.5px">持续迭代优化</text>
+        <text class="d-t" x="1040" y="293" text-anchor="middle" data-zh="解决方案">Solution</text>
+        <text class="d-t-s" x="1040" y="312" text-anchor="middle" style="font-size:9px" data-zh="持续迭代优化">Iterated continuously</text>
 
         <path class="d-arrow" d="M 1040 326 L 1040 356" marker-end="url(#ah)"/>
-        <text class="d-t-s" x="1052" y="346" style="font-size:9.5px">迭代之后 · 通用化</text>
+        <text class="d-t-s" x="1052" y="346" style="font-size:9px" data-zh="迭代之后 · 通用化">Generalize</text>
 
         <rect class="d-box d-box-hot" x="920" y="360" width="240" height="56" rx="2"/>
-        <text class="d-t d-t-hot" x="1040" y="394" text-anchor="middle">抽象为产品</text>
+        <text class="d-t d-t-hot" x="1040" y="394" text-anchor="middle" data-zh="抽象为产品">Abstracted into product</text>
 
-        <!-- feeder → 链条 -->
         <path class="d-arrow" d="M 866 232 L 894 232 L 894 294 L 916 294" marker-end="url(#ah)"/>
         <path class="d-arrow-hot" d="M 866 328 L 894 328 L 894 388 L 916 388" marker-end="url(#ah-hot)"/>
 
-        <!-- 产品 → 反哺新增能力 -->
         <path class="d-arrow-hot d-arrow-dash" d="M 920 404 L 796 404 L 796 370" marker-end="url(#ah-hot)"/>
-        <text class="d-t-s d-t-hot" x="858" y="422" text-anchor="middle" style="font-size:9.5px">反哺能力库</text>
+        <text class="d-t-s d-t-hot" x="858" y="422" text-anchor="middle" style="font-size:9px" data-zh="反哺能力库">feeds the library</text>
 
-        <!-- ANE → feeder -->
         <path class="d-arrow-hot d-arrow-dash" d="M 706 335 L 726 335" style="opacity:.5"/>
 
-        <!-- ─────── 回流 C → A ─────── -->
+        <!-- ─────── return flow C → A ─────── -->
         <path class="d-arrow-hot" d="M 1160 388 L 1188 388 L 1188 486 L 192 486 L 192 442" marker-end="url(#ah-hot)"/>
-        <rect x="428" y="474" width="524" height="24" fill="#101317"/>
-        <text class="d-t-s d-t-hot" x="690" y="491" text-anchor="middle">产品回流 · 服务个体 / 组织 / 城市 → 他们真正变成 AI Native</text>
+        <rect x="330" y="474" width="720" height="24" fill="#101317"/>
+        <text class="d-t-s d-t-hot" x="690" y="491" text-anchor="middle" data-zh="产品回流 · 服务个体 / 组织 / 城市 → 他们真正变成 AI Native">Product flows back · serving individuals / orgs / cities → they truly become AI native</text>
 
-        <!-- ─────── 底座 WORKBENCH ─────── -->
+        <!-- ─────── foundation ─────── -->
         <rect class="d-box d-box-hot" x="24" y="530" width="1152" height="96" rx="2" style="fill:rgba(255,107,53,0.04)"/>
-        <text class="d-label" x="48" y="558" style="fill:#FF6B35">FOUNDATION · 本仓库提供</text>
-        <text class="d-t" x="48" y="586" style="font-size:15px">SELF-FDE WORKBENCH — 开源方法论 · 工具台 · 数字公共物品</text>
-        <text class="d-t-s" x="48" y="608">Sin90（个体 OS） · Cos72（组织 OS） · CityOS（城市 OS） · 一键多平台发布 · 痛点对接 · 选型 / LoRA / Memory 全流程支持</text>
+        <text class="d-label" x="48" y="558" style="fill:#FF6B35" data-zh="FOUNDATION · 本仓库提供">FOUNDATION · WHAT THIS REPO PROVIDES</text>
+        <text class="d-t" x="48" y="586" style="font-size:15px" data-zh="SELF-FDE WORKBENCH — 开源方法论 · 工具台 · 数字公共物品">SELF-FDE WORKBENCH — open methodology · tooling · digital public goods</text>
+        <text class="d-t-s" x="48" y="608" style="font-size:9.5px" data-zh="Sin90（个体 OS） · Cos72（组织 OS） · CityOS（城市 OS） · 一键多平台发布 · 痛点对接 · 选型 / LoRA / Memory 全流程支持">Sin90 (individual OS) · Cos72 (org OS) · CityOS · one-click multi-platform publishing · pain-point matchmaking · model selection / LoRA / memory</text>
 
-        <!-- 支撑箭头 -->
         <path class="d-arrow-cool d-arrow-dash" d="M 192 526 L 192 502" stroke="#7FDBCA" stroke-width="1" fill="none" marker-end="url(#ah-cool)" opacity="0.55"/>
-        <path class="d-arrow-cool d-arrow-dash" d="M 392 526 L 392 508" stroke="#7FDBCA" stroke-width="1" fill="none" marker-end="url(#ah-cool)" opacity="0.55"/>
-        <path class="d-arrow-cool d-arrow-dash" d="M 944 526 L 944 502" stroke="#7FDBCA" stroke-width="1" fill="none" marker-end="url(#ah-cool)" opacity="0.55"/>
-        <text class="d-t-s" x="620" y="518" text-anchor="middle" style="font-size:9.5px;fill:#7FDBCA;opacity:.7">支撑 · 全部开源 Apache 2.0</text>
+        <path class="d-arrow-cool d-arrow-dash" d="M 290 526 L 290 508" stroke="#7FDBCA" stroke-width="1" fill="none" marker-end="url(#ah-cool)" opacity="0.55"/>
+        <path class="d-arrow-cool d-arrow-dash" d="M 1090 526 L 1090 502" stroke="#7FDBCA" stroke-width="1" fill="none" marker-end="url(#ah-cool)" opacity="0.55"/>
+        <text class="d-t-s" x="640" y="518" text-anchor="middle" style="font-size:9.5px;fill:#7FDBCA;opacity:.7" data-zh="支撑 · 全部开源 Apache 2.0">supports · all open source, Apache 2.0</text>
       </svg>
     </div>
     <div class="diagram-cap">
-      <span>Fig.1 — Self-FDE WorkBench 全景</span>
-      <span>手绘草图 → 结构化 · 2026-07-12</span>
+      <span data-zh="Fig.1 — Self-FDE WorkBench 全景">Fig.1 — Self-FDE WorkBench overview</span>
+      <span data-zh="手绘草图 → 结构化 · 2026-07-12">hand sketch → structured · 2026-07-12</span>
     </div>
 
     <div class="grid-2 io" style="margin-top:70px; align-items:center; gap:44px">
       <figure class="sketch">
-        <img src="/assets/sketch.jpg" alt="原始手绘草图" loading="lazy">
-        <figcaption>Fig.0 — 原始手绘草图（悬停查看原件）</figcaption>
+        <img src="/assets/sketch.jpg" alt="Original hand-drawn sketch" loading="lazy">
+        <figcaption data-zh="Fig.0 — 原始手绘草图（悬停查看原件）">Fig.0 — the original sketch (hover to see it as drawn)</figcaption>
       </figure>
       <div>
-        <div class="eyebrow">来源</div>
-        <h2 class="serif" style="font-size:30px;margin:20px 0 18px">一切从一页笔记本开始</h2>
-        <p>上面那张流程图，不是从模板里生成的。它是这页手写笔记的结构化版本——左页是三个服务对象和它们的操作系统，右页是 ANE 的工作循环和三种角色。</p>
-        <p>我们把讲这页图时说的每一句话，都<strong>逐字存了档</strong>。因为观点会迭代，但当时怎么想的，值得留下。</p>
-        <a class="btn" href="/vision.html" style="margin-top:10px">读完整蓝图 →</a>
+        <div class="eyebrow" data-zh="来源">Origin</div>
+        <h2 class="serif" style="font-size:30px;margin:20px 0 18px" data-zh="一切从一页笔记本开始">It all started on one notebook page</h2>
+        <p data-zh="上面那张流程图，不是从模板里生成的。它是这页手写笔记的结构化版本——左页是三个服务对象和它们的操作系统，右页是 ANE 的工作循环和三种角色。">
+          The diagram above didn't come out of a template. It's the structured version of this handwritten page —
+          left side: the three constituencies and their operating systems; right side: the ANE work loop and the three roles.
+        </p>
+        <p data-zh="我们把讲这页图时说的每一句话，都<strong>逐字存了档</strong>。因为观点会迭代，但当时怎么想的，值得留下。">
+          Every sentence spoken while explaining this page was <strong>archived verbatim</strong>. Views will change,
+          but how we thought at the time is worth keeping.
+        </p>
+        <a class="btn" href="/vision.html" style="margin-top:10px" data-zh="读完整蓝图 →">Read the blueprint →</a>
       </div>
     </div>
   </div>
@@ -274,54 +293,63 @@
 <section id="os">
   <div class="wrap">
     <div class="sec-head io">
-      <div class="eyebrow">03 / 数字公共物品</div>
-      <h2 class="serif">三个操作系统</h2>
-      <p>个体、中小组织、城市。三层服务对象，三个 Apache 2.0 开源的系统。它们不是产品，是数字公共物品。</p>
+      <div class="eyebrow" data-zh="03 / 数字公共物品">03 / Digital public goods</div>
+      <h2 class="serif" data-zh="三个操作系统">Three operating systems</h2>
+      <p data-zh="个体、中小组织、城市。三层服务对象，三个 Apache 2.0 开源的系统。它们不是产品，是数字公共物品。">
+        Individuals, small organizations, cities. Three constituencies, three Apache 2.0 open systems.
+        They are not products. They are digital public goods.
+      </p>
     </div>
     <table class="spec io">
       <thead>
-        <tr><th>系统</th><th>面向</th><th>核心</th><th>状态</th></tr>
+        <tr>
+          <th data-zh="系统">System</th>
+          <th data-zh="面向">For</th>
+          <th data-zh="核心">Core</th>
+          <th data-zh="状态">Status</th>
+        </tr>
       </thead>
       <tbody>
         <tr>
           <td>Sin90</td>
-          <td>个体</td>
-          <td>围绕 Information → Action → Connection → Communication 的成长环，提升普通人的数字福祉</td>
-          <td><span class="chip wip">设计中</span></td>
+          <td data-zh="个体">Individuals</td>
+          <td data-zh="围绕 Information → Action → Connection → Communication 的成长环，提升普通人的数字福祉">Built around the growth loop — Information → Action → Connection → Communication — to raise ordinary people's digital wellbeing</td>
+          <td><span class="chip wip" data-zh="设计中">Designing</span></td>
         </tr>
         <tr>
           <td>Cos72</td>
-          <td>社区 / 中小组织 / 商业组织</td>
-          <td>知识库 + 组织工作流 + 组织大脑（大模型 API + 自训练 LoRA）+ Connectors</td>
-          <td><span class="chip live">进行中</span></td>
+          <td data-zh="社区 / 中小组织 / 商业组织">Communities / small orgs / businesses</td>
+          <td data-zh="知识库 + 组织工作流 + 组织大脑（大模型 API + 自训练 LoRA）+ Connectors">Knowledge base + org workflow + org brain (LLM API + self-trained LoRA) + connectors</td>
+          <td><span class="chip live" data-zh="进行中">In progress</span></td>
         </tr>
         <tr>
           <td>CityOS</td>
-          <td>城市</td>
-          <td>组织间协作与资源聚合，让城市本身成为一个智能体，跨边界吸引资源与人才</td>
-          <td><span class="chip">远期</span></td>
+          <td data-zh="城市">Cities</td>
+          <td data-zh="组织间协作与资源聚合，让城市本身成为一个智能体，跨边界吸引资源与人才">Inter-org collaboration and resource pooling — the city itself becomes an agent, drawing capital and talent across borders</td>
+          <td><span class="chip" data-zh="远期">Long term</span></td>
         </tr>
       </tbody>
     </table>
-    <a class="btn io" href="/os.html" style="margin-top:32px">展开三个系统 →</a>
+    <a class="btn io" href="/os.html" style="margin-top:32px" data-zh="展开三个系统 →">Explore the three systems →</a>
   </div>
 </section>
 
 <!-- ══════════════ CTA ══════════════ -->
 <section id="join">
   <div class="wrap">
-    <div class="eyebrow io">04 / 加入</div>
-    <h2 class="serif io" style="font-size:clamp(30px,4.4vw,50px);margin:24px 0 26px;max-width:20ch">
-      10 年前，所有行业都要<em>互联网化</em>。<br>
-      现在，所有行业都要 AI 化。
+    <div class="eyebrow io" data-zh="04 / 加入">04 / Join</div>
+    <h2 class="serif io" style="font-size:clamp(30px,4.4vw,50px);margin:24px 0 26px;max-width:22ch" data-zh="10 年前，所有行业都要<em>互联网化</em>。<br>现在，所有行业都要 AI 化。">
+      Ten years ago, every industry had to go <em>online</em>.<br>
+      Now, every industry has to go AI.
     </h2>
-    <p class="io" style="max-width:60ch">
-      这是摆在眼前的既定事实。AuraAI 作为聚合 ANE 的组织，持续沉淀、交流、积累——
-      帮助更多人成为表达者、创新者、建设者。
+    <p class="io" style="max-width:62ch" data-zh="这是摆在眼前的既定事实。AuraAI 作为聚合 ANE 的组织，持续沉淀、交流、积累——帮助更多人成为表达者、创新者、建设者。">
+      This is not a prediction; it's a settled fact sitting in plain view. AuraAI, as an organization that
+      gathers ANEs, keeps accumulating and exchanging what it learns — so that more people can become
+      Expressers, Innovators and Builders.
     </p>
     <div class="hero-actions io">
-      <a class="btn primary" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">进入仓库 <span>→</span></a>
-      <a class="btn" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench/issues">提出你的痛点</a>
+      <a class="btn primary" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench" data-zh="进入仓库 <span>→</span>">Enter the repo <span>→</span></a>
+      <a class="btn" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench/issues" data-zh="提出你的痛点">Tell us your pain point</a>
     </div>
   </div>
 </section>
@@ -335,15 +363,16 @@
       <div>AuraAI · Mycelium Protocol · Apache 2.0</div>
     </div>
     <div class="links">
-      <a href="/vision.html">蓝图</a>
-      <a href="/os.html">操作系统</a>
-      <a href="/roles/builder.html">成为 ANE</a>
+      <a href="/vision.html" data-zh="蓝图">Blueprint</a>
+      <a href="/os.html" data-zh="操作系统">Three OS</a>
+      <a href="/roles/builder.html" data-zh="成为 ANE">Become an ANE</a>
       <a href="https://github.com/AuraAIHQ">AuraAI</a>
       <a href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">GitHub</a>
     </div>
   </div>
 </footer>
 
+<script src="/assets/i18n.js"></script>
 <script>
   const io = new IntersectionObserver((es) => {
     es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>建设者 Builder / ANE — Self-FDE WorkBench</title>
-<meta name="description" content="AI Native Engineer：不驻场，但在场。从 FDE 到 ANE 的工作循环与全流程支持。">
+<title data-zh="建设者 Builder / ANE — Self-FDE WorkBench">Builder / ANE — Self-FDE WorkBench</title>
+<meta name="description" content="AI Native Engineer: not forward-deployed, but present. The work loop from FDE to ANE, and end-to-end support." data-zh="AI Native Engineer：不驻场，但在场。从 FDE 到 ANE 的工作循环与全流程支持。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230A0B0D'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23FF6B35'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/assets/style.css">
 </head>
@@ -14,14 +14,18 @@
   <div class="wrap">
     <a class="brand" href="/"><span class="dot"></span>SELF-FDE / WORKBENCH</a>
     <div class="nav-scroll">
-      <a class="link" href="/#thesis">主张</a>
-      <a class="link" href="/#map">全景图</a>
-      <a class="link" href="/roles/expresser.html">表达者</a>
-      <a class="link" href="/roles/innovator.html">创新者</a>
-      <a class="link" href="/roles/builder.html" aria-current="page">建设者</a>
-      <a class="link" href="/os.html">三个操作系统</a>
-      <a class="link" href="/vision.html">蓝图</a>
+      <a class="link" href="/#thesis" data-zh="主张">Thesis</a>
+      <a class="link" href="/#map" data-zh="全景图">The Map</a>
+      <a class="link" href="/roles/expresser.html" data-zh="表达者">Expresser</a>
+      <a class="link" href="/roles/innovator.html" data-zh="创新者">Innovator</a>
+      <a class="link" href="/roles/builder.html" aria-current="page" data-zh="建设者">Builder</a>
+      <a class="link" href="/os.html" data-zh="三个操作系统">Three OS</a>
+      <a class="link" href="/vision.html" data-zh="蓝图">Blueprint</a>
       <a class="link" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">GitHub ↗</a>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button class="lang-btn" data-lang="en" aria-pressed="true">EN</button>
+      <button class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
     </div>
   </div>
 </nav>
@@ -30,12 +34,15 @@
 <header class="hero" style="padding-bottom:56px">
   <div class="wrap">
     <div class="kicker rise d1">ROLE 03 / <b>BUILDER = ANE</b></div>
-    <h1 class="rise d2" style="max-width:17ch">解决那些<span class="glow">小问题</span>——<br>它们是别人每天承受的痛苦</h1>
-    <p class="lede rise d3">
-      建设者站在创新者开辟的路上，用他们提供的更好的工具，去落地真实场景的细节分支。<br><br>
-      小红书上很多女生、文科生，什么技术都不懂，但因为对某个困境有极深的思考，就做出了很棒的产品。
-      哪怕带一部分模仿和学习，<b>完全没问题</b>——建设者要解决的，本来就是和普通人、普通组织息息相关的小问题。
-      <b>而这些「小问题」，对具体的人来说，可能是每天都在经受的痛苦。</b>
+    <h1 class="rise d2" style="max-width:17ch" data-zh="解决那些<span class=&quot;glow&quot;>小问题</span>——<br>它们是别人每天承受的痛苦">Solve the <span class="glow">small problems</span> —<br>someone endures them every day</h1>
+    <p class="lede rise d3" data-zh="建设者站在创新者开辟的路上，用他们提供的更好的工具，去落地真实场景的细节分支。<br><br> 小红书上很多女生、文科生，什么技术都不懂，但因为对某个困境有极深的思考，就做出了很棒的产品。 哪怕带一部分模仿和学习，<b>完全没问题</b>——建设者要解决的，本来就是和普通人、普通组织息息相关的小问题。 <b>而这些「小问题」，对具体的人来说，可能是每天都在经受的痛苦。</b>">
+      The Builder stands on the road the Innovator cleared, takes the better tools it offers, and lands the
+      branching details of real scenarios.<br><br>
+      On Xiaohongshu, plenty of women and humanities majors with zero technical background have shipped
+      excellent products — because they thought harder than anyone about one particular predicament.
+      Even if part of it is imitation and learning, <b>that is completely fine</b>. What a Builder solves is,
+      by definition, the small problems that press on ordinary people and ordinary organizations.
+      <b>And those “small problems” are, for the specific person living them, a pain endured every single day.</b>
     </p>
   </div>
 </header>
@@ -44,35 +51,35 @@
 <section>
   <div class="wrap">
     <div class="sec-head io">
-      <div class="eyebrow">定义</div>
+      <div class="eyebrow" data-zh="定义">Definition</div>
       <h2 class="serif">ANE — AI Native Engineer</h2>
-      <p>FDE 这个词是 Palantir 在 2010 年前后发明的，本质是把苦活脏活累活制度化：你必须进到客户现场和内部，才能准确识别真实的业务逻辑与流程，才能提炼、优化，先给方案，再抽象为产品。<br><br><strong>我们认为这个角色会长期存在——久到不该再叫 FDE。</strong></p>
+      <p data-zh="FDE 这个词是 Palantir 在 2010 年前后发明的，本质是把苦活脏活累活制度化：你必须进到客户现场和内部，才能准确识别真实的业务逻辑与流程，才能提炼、优化，先给方案，再抽象为产品。<br><br><strong>我们认为这个角色会长期存在——久到不该再叫 FDE。</strong>">FDE is a term Palantir coined around 2010. At bottom it institutionalizes the grunt work: you have to get on site and inside the customer before you can read the real business logic and workflow, distill it, improve it, deliver a solution first and abstract a product second.<br><br><strong>We think this role outlasts the name — long enough that it shouldn't be called FDE anymore.</strong></p>
     </div>
 
     <table class="spec io">
       <thead><tr><th></th><th>FDE</th><th>ANE</th></tr></thead>
       <tbody>
-        <tr><td>出处</td><td>Palantir，约 2010</td><td>本仓库提出</td></tr>
-        <tr><td>驻场</td><td><strong>必须</strong>驻场</td><td><strong>不必</strong>驻场，但必须在场</td></tr>
-        <tr><td>服务对象</td><td>大企业（付得起钱的）</td><td>个体 / 中小组织 / 城市</td></tr>
-        <tr><td>依托</td><td>公司内部方法论</td><td>开源 WorkBench + 数字公共物品</td></tr>
-        <tr><td>核心能力</td><td>业务理解 + 现场交付</td><td>业务理解 + AI 能力域调度 + 能力创新</td></tr>
+        <tr><td data-zh="出处">Origin</td><td data-zh="Palantir，约 2010">Palantir, ~2010</td><td data-zh="本仓库提出">Proposed in this repo</td></tr>
+        <tr><td data-zh="驻场">Deployment</td><td data-zh="<strong>必须</strong>驻场"><strong>Must</strong> be forward-deployed</td><td data-zh="<strong>不必</strong>驻场，但必须在场"><strong>Need not</strong> be deployed, but must be present</td></tr>
+        <tr><td data-zh="服务对象">Serves</td><td data-zh="大企业（付得起钱的）">Large enterprises (the ones who can pay)</td><td data-zh="个体 / 中小组织 / 城市">Individuals / small orgs / cities</td></tr>
+        <tr><td data-zh="依托">Backed by</td><td data-zh="公司内部方法论">In-house corporate methodology</td><td data-zh="开源 WorkBench + 数字公共物品">An open WorkBench + digital public goods</td></tr>
+        <tr><td data-zh="核心能力">Core skill</td><td data-zh="业务理解 + 现场交付">Domain understanding + on-site delivery</td><td data-zh="业务理解 + AI 能力域调度 + 能力创新">Domain understanding + orchestrating AI capability + creating new capability</td></tr>
       </tbody>
     </table>
   </div>
 </section>
 
-<!-- 工作循环 -->
+<!-- the work loop -->
 <section>
   <div class="wrap">
     <div class="sec-head io">
-      <div class="eyebrow">方法</div>
-      <h2 class="serif">ANE 工作循环</h2>
-      <p>四步，加一个能力飞轮。每一步都可能反复回退——尤其是找痛点那一步。</p>
+      <div class="eyebrow" data-zh="方法">Method</div>
+      <h2 class="serif" data-zh="ANE 工作循环">The ANE work loop</h2>
+      <p data-zh="四步，加一个能力飞轮。每一步都可能反复回退——尤其是找痛点那一步。">Four steps, plus a capability flywheel. Every step can bounce backwards — especially the one where you hunt for the pain.</p>
     </div>
 
     <div class="diagram-frame io">
-      <svg viewBox="0 0 1000 420" role="img" aria-label="ANE 工作循环">
+      <svg viewBox="0 0 1000 420" role="img" aria-label="The ANE work loop">
         <defs>
           <marker id="b-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="rgba(232,228,220,0.45)"/>
@@ -82,104 +89,104 @@
           </marker>
         </defs>
 
-        <!-- 四步链条 -->
+        <!-- the four-step chain -->
         <rect class="d-box" x="40" y="80" width="180" height="70" rx="2"/>
-        <text class="d-t" x="130" y="112" text-anchor="middle">企业 / 组织场景</text>
-        <text class="d-t-s" x="130" y="132" text-anchor="middle" style="font-size:9.5px">真实的业务流程在这里</text>
+        <text class="d-t" x="130" y="112" text-anchor="middle" data-zh="企业 / 组织场景">Enterprise / org</text>
+        <text class="d-t-s" x="130" y="132" text-anchor="middle" style="font-size:9.5px" data-zh="真实的业务流程在这里">The real workflow lives here</text>
 
         <path class="d-arrow" d="M 224 115 L 268 115" marker-end="url(#b-ah)"/>
-        <text class="d-t-s" x="246" y="100" text-anchor="middle" style="font-size:9px">沟通</text>
+        <text class="d-t-s" x="246" y="100" text-anchor="middle" style="font-size:9px" data-zh="沟通">talk</text>
 
         <rect class="d-box d-box-hot" x="272" y="80" width="180" height="70" rx="2"/>
-        <text class="d-t d-t-hot" x="362" y="112" text-anchor="middle">痛点</text>
-        <text class="d-t-s" x="362" y="132" text-anchor="middle" style="font-size:9.5px">反复沟通才找得到真卡点</text>
+        <text class="d-t d-t-hot" x="362" y="112" text-anchor="middle" data-zh="痛点">Pain point</text>
+        <text class="d-t-s" x="362" y="132" text-anchor="middle" style="font-size:9.5px" data-zh="反复沟通才找得到真卡点">Takes many talks to find</text>
 
         <path class="d-arrow" d="M 456 115 L 500 115" marker-end="url(#b-ah)"/>
-        <text class="d-t-s" x="478" y="100" text-anchor="middle" style="font-size:9px">结合工作流</text>
+        <text class="d-t-s" x="478" y="100" text-anchor="middle" style="font-size:9px" data-zh="结合工作流">workflow</text>
 
         <rect class="d-box" x="504" y="80" width="180" height="70" rx="2"/>
-        <text class="d-t" x="594" y="112" text-anchor="middle">解决方案</text>
-        <text class="d-t-s" x="594" y="132" text-anchor="middle" style="font-size:9.5px">持续迭代优化</text>
+        <text class="d-t" x="594" y="112" text-anchor="middle" data-zh="解决方案">Solution</text>
+        <text class="d-t-s" x="594" y="132" text-anchor="middle" style="font-size:9.5px" data-zh="持续迭代优化">Iterated continuously</text>
 
         <path class="d-arrow" d="M 688 115 L 732 115" marker-end="url(#b-ah)"/>
-        <text class="d-t-s" x="710" y="100" text-anchor="middle" style="font-size:9px">通用化</text>
+        <text class="d-t-s" x="710" y="100" text-anchor="middle" style="font-size:9px" data-zh="通用化">generic</text>
 
         <rect class="d-box d-box-hot" x="736" y="80" width="180" height="70" rx="2"/>
-        <text class="d-t d-t-hot" x="826" y="120" text-anchor="middle">抽象为产品</text>
+        <text class="d-t d-t-hot" x="826" y="120" text-anchor="middle" data-zh="抽象为产品">Product</text>
 
-        <!-- 客户参与（回退箭头） -->
+        <!-- the client stays in the loop (fallback arrow) -->
         <path class="d-arrow d-arrow-dash" d="M 362 76 L 362 46 L 130 46 L 130 76" marker-end="url(#b-ah)"/>
-        <text class="d-t-s" x="246" y="38" text-anchor="middle" style="font-size:9.5px">客户必须深度参与 · 痛点常常要回头再找</text>
+        <text class="d-t-s" x="246" y="38" text-anchor="middle" style="font-size:9.5px" data-zh="客户必须深度参与 · 痛点常常要回头再找">The client must take part · you often go back for the pain</text>
 
-        <!-- 能力飞轮 -->
+        <!-- capability flywheel -->
         <rect class="d-box" x="494" y="240" width="200" height="66" rx="2"/>
-        <text class="d-t" x="594" y="268" text-anchor="middle" style="font-size:12px">已有 AI 能力</text>
-        <text class="d-t-s" x="594" y="288" text-anchor="middle" style="font-size:9.5px">架构 · 能力域 · 能力边界</text>
+        <text class="d-t" x="594" y="268" text-anchor="middle" style="font-size:12px" data-zh="已有 AI 能力">Existing AI</text>
+        <text class="d-t-s" x="594" y="288" text-anchor="middle" style="font-size:9.5px" data-zh="架构 · 能力域 · 能力边界">Architecture · domain · limits</text>
 
         <rect class="d-box d-box-hot" x="726" y="240" width="200" height="66" rx="2"/>
-        <text class="d-t d-t-hot" x="826" y="264" text-anchor="middle" style="font-size:12px">新增 / 创新能力</text>
-        <text class="d-t-s" x="826" y="283" text-anchor="middle" style="font-size:9.5px">二次包装 · 多能力组合</text>
-        <text class="d-t-s" x="826" y="298" text-anchor="middle" style="font-size:9.5px">引入新资源维度</text>
+        <text class="d-t d-t-hot" x="826" y="264" text-anchor="middle" style="font-size:12px" data-zh="新增 / 创新能力">New capability</text>
+        <text class="d-t-s" x="826" y="283" text-anchor="middle" style="font-size:9.5px" data-zh="二次包装 · 多能力组合">Rewrapping · composition</text>
+        <text class="d-t-s" x="826" y="298" text-anchor="middle" style="font-size:9.5px" data-zh="引入新资源维度">New resource dimensions</text>
 
         <path class="d-arrow" d="M 594 236 L 594 158" marker-end="url(#b-ah)"/>
-        <text class="d-t-s" x="606" y="202" style="font-size:9px">调度已有能力</text>
+        <text class="d-t-s" x="606" y="202" style="font-size:9px" data-zh="调度已有能力">orchestrate what exists</text>
         <path class="d-arrow-hot" d="M 826 236 L 826 158" marker-end="url(#b-hot)"/>
-        <text class="d-t-s d-t-hot" x="838" y="202" style="font-size:9px">补上缺的能力</text>
+        <text class="d-t-s d-t-hot" x="838" y="202" style="font-size:9px" data-zh="补上缺的能力">add what's missing</text>
 
-        <!-- 产品 → 反哺能力库 -->
+        <!-- product → feeds the capability library -->
         <path class="d-arrow-hot d-arrow-dash" d="M 916 130 L 956 130 L 956 366 L 594 366 L 594 312" marker-end="url(#b-hot)"/>
-        <text class="d-t-s d-t-hot" x="775" y="358" text-anchor="middle">产品沉淀进能力库</text>
+        <text class="d-t-s d-t-hot" x="775" y="358" text-anchor="middle" data-zh="产品沉淀进能力库">Product settles into the library</text>
 
-        <text class="d-label" x="40" y="404">ANE WORK LOOP · 抽象出的产品会扩充能力库，下一次交付更快 —— 这是 ANE 的飞轮</text>
+        <text class="d-label" x="40" y="404" data-zh="ANE WORK LOOP · 抽象出的产品会扩充能力库，下一次交付更快 —— 这是 ANE 的飞轮">ANE WORK LOOP · EACH ABSTRACTED PRODUCT EXPANDS THE LIBRARY, SO THE NEXT DELIVERY IS FASTER — THAT IS THE FLYWHEEL</text>
       </svg>
     </div>
   </div>
 </section>
 
-<!-- 全流程支持 -->
+<!-- end-to-end support -->
 <section>
   <div class="wrap">
     <div class="sec-head io">
-      <div class="eyebrow">WorkBench 提供</div>
-      <h2 class="serif">全流程支持</h2>
-      <p>不是课程，是工作台。你在真实场景里会卡在哪，我们就在哪。</p>
+      <div class="eyebrow" data-zh="WorkBench 提供">What the WorkBench provides</div>
+      <h2 class="serif" data-zh="全流程支持">End-to-end support</h2>
+      <p data-zh="不是课程，是工作台。你在真实场景里会卡在哪，我们就在哪。">Not a course — a workbench. Wherever you jam in a real scenario, that's where we are.</p>
     </div>
 
     <div class="grid-2 io">
       <div class="card">
         <span class="idx">TRACK 01</span>
-        <h3>AI Native 选型</h3>
-        <div class="sub">Model & Architecture</div>
-        <p>什么场景该用什么模型？闭源 API 还是开源自部署？能力边界在哪里，什么时候不该用 AI——这往往比「怎么用」更值钱。</p>
+        <h3 data-zh="AI Native 选型">AI Native selection</h3>
+        <div class="sub">Model &amp; Architecture</div>
+        <p data-zh="什么场景该用什么模型？闭源 API 还是开源自部署？能力边界在哪里，什么时候不该用 AI——这往往比「怎么用」更值钱。">Which model for which scenario? A closed API or open weights you host yourself? Where the limits are, and when you should not use AI at all — that last one is often worth more than knowing how to use it.</p>
       </div>
       <div class="card">
         <span class="idx">TRACK 02</span>
-        <h3>训练自己的小模型</h3>
+        <h3 data-zh="训练自己的小模型">Train your own small model</h3>
         <div class="sub">LoRA / Fine-tuning</div>
-        <p>用组织自身的数据做特定场景微调，让模型对这个组织了解得极其透彻。<strong>这是一个阶段性结论，未来可能被打破</strong>——但现在，它有效。</p>
+        <p data-zh="用组织自身的数据做特定场景微调，让模型对这个组织了解得极其透彻。<strong>这是一个阶段性结论，未来可能被打破</strong>——但现在，它有效。">Fine-tune on the organization's own data for its own scenarios, until the model knows that organization inside out. <strong>This is a conclusion for now, and the future may break it</strong> — but today, it works.</p>
       </div>
       <div class="card">
         <span class="idx">TRACK 03</span>
-        <h3>Memory 与 Context</h3>
+        <h3 data-zh="Memory 与 Context">Memory and context</h3>
         <div class="sub">Context Engineering</div>
-        <p>Memory 在 Context 管理里究竟该如何实践和落地？有哪些可选的技术方案？各自的代价是什么？</p>
+        <p data-zh="Memory 在 Context 管理里究竟该如何实践和落地？有哪些可选的技术方案？各自的代价是什么？">How does memory actually get practiced and shipped inside context management? What are the technical options? What does each one cost you?</p>
       </div>
       <div class="card">
         <span class="idx">TRACK 04</span>
-        <h3>Agent 与 Connector</h3>
+        <h3 data-zh="Agent 与 Connector">Agents and connectors</h3>
         <div class="sub">Agents in Production</div>
-        <p>行业数据抓取、供应商自动连接与报价、客户新品推送与售后——把 Agent 接进组织的真实工作流，而不是做 Demo。</p>
+        <p data-zh="行业数据抓取、供应商自动连接与报价、客户新品推送与售后——把 Agent 接进组织的真实工作流，而不是做 Demo。">Scraping industry data, auto-connecting suppliers and pulling quotes, pushing new products to customers and handling after-sales — wire agents into the organization's real workflow, not into a demo.</p>
       </div>
     </div>
 
     <div class="quote io">
-      <p>AuraAI 作为聚合 ANE 的组织，持续沉淀、交流、积累，从而帮助更多的人成为表达者、创新者和建设者。</p>
-      <cite>— 这个仓库的使命</cite>
+      <p data-zh="AuraAI 作为聚合 ANE 的组织，持续沉淀、交流、积累，从而帮助更多的人成为表达者、创新者和建设者。">AuraAI, as an organization that gathers ANEs, keeps accumulating and exchanging what it learns — so that more people can become Expressers, Innovators and Builders.</p>
+      <cite data-zh="— 这个仓库的使命">— The mission of this repository</cite>
     </div>
 
     <div class="hero-actions io">
-      <a class="btn primary" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">进入仓库 <span>→</span></a>
-      <a class="btn" href="/os.html">看三个操作系统</a>
+      <a class="btn primary" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench" data-zh="进入仓库 <span>→</span>">Enter the repo <span>→</span></a>
+      <a class="btn" href="/os.html" data-zh="看三个操作系统">See the three systems</a>
     </div>
   </div>
 </section>
@@ -192,14 +199,15 @@
       <div>AuraAI · Mycelium Protocol · Apache 2.0</div>
     </div>
     <div class="links">
-      <a href="/">首页</a>
-      <a href="/vision.html">蓝图</a>
-      <a href="/os.html">操作系统</a>
+      <a href="/" data-zh="首页">Home</a>
+      <a href="/vision.html" data-zh="蓝图">Blueprint</a>
+      <a href="/os.html" data-zh="操作系统">Three OS</a>
       <a href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">GitHub</a>
     </div>
   </div>
 </footer>
 
+<script src="/assets/i18n.js"></script>
 <script>
   const io = new IntersectionObserver((es) => {
     es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
