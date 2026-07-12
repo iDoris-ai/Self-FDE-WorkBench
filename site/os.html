@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>三个操作系统 — Sin90 / Cos72 / CityOS</title>
-<meta name="description" content="个体、中小组织、城市。三层服务对象，三个 Apache 2.0 开源系统。不是产品，是数字公共物品。">
+<title data-zh="三个操作系统 — Sin90 / Cos72 / CityOS">Three operating systems — Sin90 / Cos72 / CityOS</title>
+<meta name="description" content="Individuals, small organizations, cities. Three constituencies, three Apache 2.0 open systems. Not products — digital public goods." data-zh="个体、中小组织、城市。三层服务对象，三个 Apache 2.0 开源系统。不是产品，是数字公共物品。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230A0B0D'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23FF6B35'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/assets/style.css">
 </head>
@@ -14,14 +14,18 @@
   <div class="wrap">
     <a class="brand" href="/"><span class="dot"></span>SELF-FDE / WORKBENCH</a>
     <div class="nav-scroll">
-      <a class="link" href="/#thesis">主张</a>
-      <a class="link" href="/#map">全景图</a>
-      <a class="link" href="/roles/expresser.html">表达者</a>
-      <a class="link" href="/roles/innovator.html">创新者</a>
-      <a class="link" href="/roles/builder.html">建设者</a>
-      <a class="link" href="/os.html" aria-current="page">三个操作系统</a>
-      <a class="link" href="/vision.html">蓝图</a>
+      <a class="link" href="/#thesis" data-zh="主张">Thesis</a>
+      <a class="link" href="/#map" data-zh="全景图">The Map</a>
+      <a class="link" href="/roles/expresser.html" data-zh="表达者">Expresser</a>
+      <a class="link" href="/roles/innovator.html" data-zh="创新者">Innovator</a>
+      <a class="link" href="/roles/builder.html" data-zh="建设者">Builder</a>
+      <a class="link" href="/os.html" aria-current="page" data-zh="三个操作系统">Three OS</a>
+      <a class="link" href="/vision.html" data-zh="蓝图">Blueprint</a>
       <a class="link" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">GitHub ↗</a>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button class="lang-btn" data-lang="en" aria-pressed="true">EN</button>
+      <button class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
     </div>
   </div>
 </nav>
@@ -30,10 +34,10 @@
 <header class="hero" style="padding-bottom:56px">
   <div class="wrap">
     <div class="kicker rise d1">DIGITAL PUBLIC GOODS / <b>APACHE 2.0</b></div>
-    <h1 class="rise d2" style="max-width:16ch">三个<span class="glow">操作系统</span><br>三层服务对象</h1>
-    <p class="lede rise d3">
-      个体、中小组织、城市。<br>
-      它们<b>不是产品，是数字公共物品</b>——开源、免费、无许可，任何人都可以使用、修改和部署。
+    <h1 class="rise d2" style="max-width:16ch" data-zh="三个<span class=&quot;glow&quot;>操作系统</span><br>三层服务对象">Three <span class="glow">operating systems</span><br>Three constituencies</h1>
+    <p class="lede rise d3" data-zh="个体、中小组织、城市。<br>它们<b>不是产品，是数字公共物品</b>——开源、免费、无许可，任何人都可以使用、修改和部署。">
+      Individuals, small organizations, cities.<br>
+      They are <b>not products. They are digital public goods</b> — open source, free, permissionless: anyone can use, modify and deploy them.
     </p>
   </div>
 </header>
@@ -42,13 +46,13 @@
 <section id="sin90">
   <div class="wrap">
     <div class="sec-head io">
-      <div class="eyebrow">01 / 个体 · <span class="chip wip">设计中</span></div>
-      <h2 class="serif">Sin90 — 个体成长环</h2>
-      <p>每个人每天都在跑同一个环，只是内容不同。睁开眼看表、刷微信、刷小红书——甚至只是拉开窗帘看看天气，都是<strong>获取信息</strong>，那是你的第一步。</p>
+      <div class="eyebrow" data-zh="01 / 个体 · <span class=&quot;chip wip&quot;>设计中</span>">01 / Individuals · <span class="chip wip">Designing</span></div>
+      <h2 class="serif" data-zh="Sin90 — 个体成长环">Sin90 — the individual growth loop</h2>
+      <p data-zh="每个人每天都在跑同一个环，只是内容不同。睁开眼看表、刷微信、刷小红书——甚至只是拉开窗帘看看天气，都是<strong>获取信息</strong>，那是你的第一步。">Everyone runs the same loop every day; only the contents differ. Opening your eyes and checking the clock, scrolling WeChat, scrolling Xiaohongshu — even just pulling the curtain to look at the weather — all of it is <strong>taking in information</strong>. That is your first step.</p>
     </div>
 
     <div class="diagram-frame io">
-      <svg viewBox="0 0 900 330" role="img" aria-label="Sin90 个体成长环">
+      <svg viewBox="0 0 900 330" role="img" aria-label="Sin90 individual growth loop">
         <defs>
           <marker id="s-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="#7FDBCA"/>
@@ -60,37 +64,37 @@
 
         <rect class="d-box d-box-cool" x="40" y="120" width="150" height="62" rx="2"/>
         <text class="d-t d-t-cool" x="115" y="147" text-anchor="middle">Information</text>
-        <text class="d-t-s" x="115" y="167" text-anchor="middle" style="font-size:9.5px">信息</text>
+        <text class="d-t-s" x="115" y="167" text-anchor="middle" style="font-size:9.5px" data-zh="信息">what you take in</text>
 
         <path class="d-arrow" d="M 194 151 L 234 151" stroke="#7FDBCA" marker-end="url(#s-ah)" opacity=".7"/>
 
         <rect class="d-box d-box-cool" x="238" y="120" width="150" height="62" rx="2"/>
         <text class="d-t d-t-cool" x="313" y="147" text-anchor="middle">Action</text>
-        <text class="d-t-s" x="313" y="167" text-anchor="middle" style="font-size:9.5px">行动</text>
+        <text class="d-t-s" x="313" y="167" text-anchor="middle" style="font-size:9.5px" data-zh="行动">what you do</text>
 
         <path class="d-arrow" d="M 392 151 L 432 151" stroke="#7FDBCA" marker-end="url(#s-ah)" opacity=".7"/>
 
         <rect class="d-box d-box-cool" x="436" y="120" width="150" height="62" rx="2"/>
         <text class="d-t d-t-cool" x="511" y="147" text-anchor="middle">Connection</text>
-        <text class="d-t-s" x="511" y="167" text-anchor="middle" style="font-size:9.5px">连接人 · 工具 · 世界</text>
+        <text class="d-t-s" x="511" y="167" text-anchor="middle" style="font-size:9.5px" data-zh="连接人 · 工具 · 世界">people · tools · world</text>
 
         <path class="d-arrow" d="M 590 151 L 630 151" stroke="#7FDBCA" marker-end="url(#s-ah)" opacity=".7"/>
 
         <rect class="d-box d-box-cool" x="634" y="120" width="176" height="62" rx="2"/>
         <text class="d-t d-t-cool" x="722" y="147" text-anchor="middle">Communication</text>
-        <text class="d-t-s" x="722" y="167" text-anchor="middle" style="font-size:9.5px">维系关系是为了沟通</text>
+        <text class="d-t-s" x="722" y="167" text-anchor="middle" style="font-size:9.5px" data-zh="维系关系是为了沟通">you keep ties in order to talk</text>
 
         <!-- 回环 -->
         <path class="d-arrow-hot" d="M 810 151 L 848 151 L 848 68 L 115 68 L 115 116" marker-end="url(#ah-hot2)" stroke="#FF6B35" fill="none"/>
-        <text class="d-t-s d-t-hot" x="480" y="56" text-anchor="middle">沟通是为了 —— 再一次获取信息。环，就这样闭合了。</text>
+        <text class="d-t-s d-t-hot" x="480" y="56" text-anchor="middle" data-zh="沟通是为了 —— 再一次获取信息。环，就这样闭合了。">And you talk in order to — take in information again. That is how the loop closes.</text>
 
-        <text class="d-t-s" x="450" y="240" text-anchor="middle" style="font-size:12px;fill:#E8E4DC">生活 · 学习 · 社交 · 工作 —— 个人的成长，全部发生在这个环里</text>
-        <text class="d-label" x="40" y="296">SIN90 · 围绕成长环打造的个体操作系统 · APACHE 2.0</text>
+        <text class="d-t-s" x="450" y="240" text-anchor="middle" style="font-size:12px;fill:#E8E4DC" data-zh="生活 · 学习 · 社交 · 工作 —— 个人的成长，全部发生在这个环里">Life · learning · social · work — all personal growth happens inside this loop</text>
+        <text class="d-label" x="40" y="296" data-zh="SIN90 · 围绕成长环打造的个体操作系统 · APACHE 2.0">SIN90 · AN INDIVIDUAL OS BUILT AROUND THE GROWTH LOOP · APACHE 2.0</text>
       </svg>
     </div>
 
     <div class="prose io" style="margin-top:44px">
-      <p>Sin90 的目标只有一个：围绕这个环，为普通个体的<strong>工作、生活、学习乃至创业</strong>提供助力和加持，得到一些数字生活的福祉。</p>
+      <p data-zh="Sin90 的目标只有一个：围绕这个环，为普通个体的<strong>工作、生活、学习乃至创业</strong>提供助力和加持，得到一些数字生活的福祉。">Sin90 has exactly one goal: to stand around this loop and give an ordinary person a lift in <strong>work, life, learning — even starting something of their own</strong>, so that some of the wellbeing of digital life actually reaches them.</p>
     </div>
   </div>
 </section>
@@ -99,46 +103,46 @@
 <section id="cos72">
   <div class="wrap">
     <div class="sec-head io">
-      <div class="eyebrow">02 / 社区 · 中小组织 · 商业组织 · <span class="chip live">进行中</span></div>
-      <h2 class="serif">Cos72 — 组织协作系统</h2>
-      <p>很多中小组织没有研发力量、没有技术人员，甚至雇不起一个 FDE。<strong>那能不能自己 FDE？</strong>把它拆散，通过协作去找到创新者和建设者，用 ANE 的方式，建设自己组织的 AI 能力。<strong>我觉得是可以的。</strong></p>
+      <div class="eyebrow" data-zh="02 / 社区 · 中小组织 · 商业组织 · <span class=&quot;chip live&quot;>进行中</span>">02 / Communities · small orgs · businesses · <span class="chip live">In progress</span></div>
+      <h2 class="serif" data-zh="Cos72 — 组织协作系统">Cos72 — the organization collaboration system</h2>
+      <p data-zh="很多中小组织没有研发力量、没有技术人员，甚至雇不起一个 FDE。<strong>那能不能自己 FDE？</strong>把它拆散，通过协作去找到创新者和建设者，用 ANE 的方式，建设自己组织的 AI 能力。<strong>我觉得是可以的。</strong>">Plenty of small organizations have no engineering muscle, no technical staff, and can't even afford a single FDE. <strong>So can they be their own FDE?</strong> Break the job apart, collaborate to find the innovators and the builders, and build the organization's own AI capability the ANE way. <strong>I think they can.</strong></p>
     </div>
 
     <div class="grid-3 io">
       <div class="card">
         <span class="idx">CORE 01</span>
-        <h3>知识库</h3>
-        <div class="sub">Knowledge Base</div>
-        <p>组织沉淀的知识，散落在数据库里、老员工的脑子里、客户的印象里。<strong>在 AI 时代，它必须被沉淀下来。</strong></p>
+        <h3 data-zh="知识库">Knowledge Base</h3>
+        <div class="sub" data-zh="Knowledge Base">知识库</div>
+        <p data-zh="组织沉淀的知识，散落在数据库里、老员工的脑子里、客户的印象里。<strong>在 AI 时代，它必须被沉淀下来。</strong>">The knowledge an organization has accrued is scattered across databases, the heads of long-serving staff, and the impressions of customers. <strong>In the age of AI, it has to be laid down and kept.</strong></p>
       </div>
       <div class="card">
         <span class="idx">CORE 02</span>
-        <h3>组织工作流</h3>
-        <div class="sub">Organizational Workflow</div>
-        <p>使命、愿景、价值观、商业逻辑——它为什么存在？所有这些软性的东西，最终都要通过流程落地。公益组织和商业组织，一个道理。</p>
+        <h3 data-zh="组织工作流">Organizational Workflow</h3>
+        <div class="sub" data-zh="Organizational Workflow">组织工作流</div>
+        <p data-zh="使命、愿景、价值观、商业逻辑——它为什么存在？所有这些软性的东西，最终都要通过流程落地。公益组织和商业组织，一个道理。">Mission, vision, values, business logic — why does this thing exist at all? All that soft matter finally has to land through process. Nonprofits and businesses: same principle.</p>
       </div>
       <div class="card">
         <span class="idx">CORE 03</span>
-        <h3>组织大脑</h3>
-        <div class="sub">Organizational Brain</div>
-        <p><strong>大模型 API</strong>（OpenAI / Anthropic / DeepSeek⋯）<strong>+ 自训练 LoRA</strong>：用组织自身的大量数据做特定场景微调，让模型对这个组织了解得极其透彻。</p>
+        <h3 data-zh="组织大脑">Organizational Brain</h3>
+        <div class="sub" data-zh="Organizational Brain">组织大脑</div>
+        <p data-zh="<strong>大模型 API</strong>（OpenAI / Anthropic / DeepSeek⋯）<strong>+ 自训练 LoRA</strong>：用组织自身的大量数据做特定场景微调，让模型对这个组织了解得极其透彻。"><strong>An LLM API</strong> (OpenAI / Anthropic / DeepSeek⋯) <strong>+ a self-trained LoRA</strong>: fine-tune on the organization's own data for its own scenarios, until the model knows that organization inside out.</p>
       </div>
     </div>
 
     <div class="quote io">
-      <p>自训练 LoRA 是一个阶段性结论。这个结论未来可能被打破——但在今天，它让组织的流程效率提升得最多。</p>
-      <cite>— 关于组织大脑</cite>
+      <p data-zh="自训练 LoRA 是一个阶段性结论。这个结论未来可能被打破——但在今天，它让组织的流程效率提升得最多。">The self-trained LoRA is a conclusion for now. The future may break it — but today, it is what lifts an organization's process efficiency the most.</p>
+      <cite data-zh="— 关于组织大脑">— On the organizational brain</cite>
     </div>
 
     <div class="prose io">
-      <h3>Connectors / Sensors（各类 Agent）</h3>
-      <p>组织的工作流和个体一样，需要大量的连接器与传感器。它们本质上就是各种 Agent：</p>
+      <h3 data-zh="Connectors / Sensors（各类 Agent）">Connectors / Sensors (agents of all kinds)</h3>
+      <p data-zh="组织的工作流和个体一样，需要大量的连接器与传感器。它们本质上就是各种 Agent：">An organization's workflow, like an individual's, needs a great many connectors and sensors. At bottom they are all agents:</p>
       <ul>
-        <li>行业数据的抓取、分析与新闻判断</li>
-        <li>外部采购供应商之间的自动连接与报价</li>
-        <li>对客户的定期新品推送与售后服务</li>
+        <li data-zh="行业数据的抓取、分析与新闻判断">Scraping and analyzing industry data, and judging the news</li>
+        <li data-zh="外部采购供应商之间的自动连接与报价">Auto-connecting outside suppliers and pulling quotes</li>
+        <li data-zh="对客户的定期新品推送与售后服务">Pushing new products to customers on a cadence, and after-sales service</li>
       </ul>
-      <p>这些 Agent 获取信息，并<strong>支撑</strong>你的组织工作流。</p>
+      <p data-zh="这些 Agent 获取信息，并<strong>支撑</strong>你的组织工作流。">These agents take in information and <strong>hold up</strong> your organization's workflow.</p>
     </div>
   </div>
 </section>
@@ -147,40 +151,40 @@
 <section id="cityos">
   <div class="wrap">
     <div class="sec-head io">
-      <div class="eyebrow">03 / 城市 · <span class="chip">远期</span></div>
-      <h2 class="serif">CityOS — 城市成为智能体</h2>
-      <p>当每个组织都有了一个足够懂自己上下文的大脑，<strong>组织之间的共享，会涌现出新的协作模式</strong>，以及城市内的资源聚合。</p>
+      <div class="eyebrow" data-zh="03 / 城市 · <span class=&quot;chip&quot;>远期</span>">03 / Cities · <span class="chip">Long term</span></div>
+      <h2 class="serif" data-zh="CityOS — 城市成为智能体">CityOS — the city becomes an agent</h2>
+      <p data-zh="当每个组织都有了一个足够懂自己上下文的大脑，<strong>组织之间的共享，会涌现出新的协作模式</strong>，以及城市内的资源聚合。">Once every organization has a brain that knows its own context well enough, <strong>sharing between organizations will make new patterns of collaboration emerge</strong> — and resources will pool inside the city.</p>
     </div>
 
     <div class="grid-3 io">
       <div class="card">
         <span class="idx">EMERGE 01</span>
-        <h3>组织间协作</h3>
-        <div class="sub">Inter-Org Collaboration</div>
-        <p>不需要全知全能，只需要对彼此的信息和上下文有足够了解。新的协作模式会自己长出来。</p>
+        <h3 data-zh="组织间协作">Inter-Org Collaboration</h3>
+        <div class="sub" data-zh="Inter-Org Collaboration">组织间协作</div>
+        <p data-zh="不需要全知全能，只需要对彼此的信息和上下文有足够了解。新的协作模式会自己长出来。">Nobody has to be omniscient. Each side only has to know enough of the other's information and context. New patterns of collaboration will grow on their own.</p>
       </div>
       <div class="card">
         <span class="idx">EMERGE 02</span>
-        <h3>吸引资源</h3>
-        <div class="sub">Attract Resources</div>
-        <p>以城市为边界的协作，可以跨边界去吸引更多的外部资源。</p>
+        <h3 data-zh="吸引资源">Attract Resources</h3>
+        <div class="sub" data-zh="Attract Resources">吸引资源</div>
+        <p data-zh="以城市为边界的协作，可以跨边界去吸引更多的外部资源。">Collaboration bounded by a city can reach across that boundary to draw in more outside resources.</p>
       </div>
       <div class="card">
         <span class="idx">EMERGE 03</span>
-        <h3>吸纳人才</h3>
-        <div class="sub">Attract Talent</div>
-        <p>城市本身变成一个智能体，与所有人协作——而不是与所有人博弈。</p>
+        <h3 data-zh="吸纳人才">Attract Talent</h3>
+        <div class="sub" data-zh="Attract Talent">吸纳人才</div>
+        <p data-zh="城市本身变成一个智能体，与所有人协作——而不是与所有人博弈。">The city itself becomes an agent that collaborates with everyone — instead of playing everyone off against each other.</p>
       </div>
     </div>
 
     <div class="quote io">
-      <p>清迈是一座旅游城市。它如何在全球的旅游城市中吸引更多游客？我相信这是市长、市政府乃至全体市民都希望被解答的命题。CityOS 就是去解答它的。<br><br>这件事没有人尝试过。但<em>只有先行者，才享受得到数字福祉的红利。</em></p>
-      <cite>— 关于 CityOS</cite>
+      <p data-zh="清迈是一座旅游城市。它如何在全球的旅游城市中吸引更多游客？我相信这是市长、市政府乃至全体市民都希望被解答的命题。CityOS 就是去解答它的。<br><br>这件事没有人尝试过。但<em>只有先行者，才享受得到数字福祉的红利。</em>">Chiang Mai is a tourist city. How does it draw more visitors than the other tourist cities of the world? I believe that is a question the mayor, the city government, and every resident would like answered. CityOS exists to answer it.<br><br>No one has tried this. But <em>only those who go first get the dividend of digital wellbeing.</em></p>
+      <cite data-zh="— 关于 CityOS">— On CityOS</cite>
     </div>
 
     <div class="hero-actions io">
-      <a class="btn primary" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">参与建设 <span>→</span></a>
-      <a class="btn" href="/vision.html">读完整蓝图</a>
+      <a class="btn primary" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench" data-zh="参与建设 <span>→</span>">Help build it <span>→</span></a>
+      <a class="btn" href="/vision.html" data-zh="读完整蓝图">Read the blueprint</a>
     </div>
   </div>
 </section>
@@ -193,14 +197,15 @@
       <div>AuraAI · Mycelium Protocol · Apache 2.0</div>
     </div>
     <div class="links">
-      <a href="/">首页</a>
-      <a href="/vision.html">蓝图</a>
-      <a href="/roles/builder.html">成为 ANE</a>
+      <a href="/" data-zh="首页">Home</a>
+      <a href="/vision.html" data-zh="蓝图">Blueprint</a>
+      <a href="/roles/builder.html" data-zh="成为 ANE">Become an ANE</a>
       <a href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">GitHub</a>
     </div>
   </div>
 </footer>
 
+<script src="/assets/i18n.js"></script>
 <script>
   const io = new IntersectionObserver((es) => {
     es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
