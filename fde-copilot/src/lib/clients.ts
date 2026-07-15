@@ -7,7 +7,16 @@ import { SPEC_DOCS } from "./types";
 export const CLIENTS_DIR = path.join(process.cwd(), "clients");
 
 export function clientDir(slug: string): string {
-  return path.join(CLIENTS_DIR, slug);
+  // 防路径穿越：slug 不得含分隔符/上跳，且解析后必须落在 CLIENTS_DIR 内
+  if (typeof slug !== "string" || !slug || slug.includes("/") || slug.includes("\\") || slug.includes("..")) {
+    throw new Error(`非法客户标识：${String(slug)}`);
+  }
+  const dir = path.join(CLIENTS_DIR, slug);
+  const resolved = path.resolve(dir);
+  if (resolved !== CLIENTS_DIR && !resolved.startsWith(CLIENTS_DIR + path.sep)) {
+    throw new Error(`客户目录越界：${String(slug)}`);
+  }
+  return dir;
 }
 
 export function slugify(name: string): string {
@@ -58,7 +67,13 @@ export async function listClients(): Promise<ClientState[]> {
 }
 
 export async function readState(slug: string): Promise<ClientState | null> {
-  const p = path.join(clientDir(slug), "state.json");
+  let dir: string;
+  try {
+    dir = clientDir(slug);
+  } catch {
+    return null; // 非法 slug 视为不存在
+  }
+  const p = path.join(dir, "state.json");
   if (!(await exists(p))) return null;
   try {
     return JSON.parse(await fs.readFile(p, "utf8")) as ClientState;
@@ -105,7 +120,13 @@ export async function createClient(name: string): Promise<ClientState> {
 
 export async function readDoc(slug: string, file: string): Promise<string | null> {
   if (!SPEC_DOCS.includes(file as never)) return null;
-  const p = path.join(clientDir(slug), file);
+  let dir: string;
+  try {
+    dir = clientDir(slug);
+  } catch {
+    return null;
+  }
+  const p = path.join(dir, file);
   if (!(await exists(p))) return null;
   return fs.readFile(p, "utf8");
 }

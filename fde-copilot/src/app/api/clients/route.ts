@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { listClients, createClient } from "@/lib/clients";
+import { authError } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = authError(req);
+  if (denied) return denied;
   const clients = await listClients();
   return NextResponse.json({ clients });
 }
 
 export async function POST(req: Request) {
+  const denied = authError(req);
+  if (denied) return denied;
   try {
     const { name } = (await req.json()) as { name?: string };
     if (!name || !name.trim()) {

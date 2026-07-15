@@ -2,8 +2,48 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import { query, tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
+import type { CanUseTool } from "@anthropic-ai/claude-agent-sdk";
 import { clientDir, readConversation } from "./clients";
 import type { ConversationEntry, TurnResult } from "./types";
+
+/**
+ * 权限闸（对抗 prompt injection）：客户输入原样进 prompt，故必须硬性约束工具。
+ * 文件读写/搜索路径必须落在该客户目录内；只放行检索与 submit_turn；其余（Bash/WebFetch 等）一律拒绝。
+ */
+function makeCanUseTool(root: string): CanUseTool {
+  const base = path.resolve(root);
+  const inside = (p: unknown): boolean => {
+    if (typeof p !== "string" || p.length === 0) return false;
+    const abs = path.isAbsolute(p) ? path.resolve(p) : path.resolve(base, p);
+    return abs === base || abs.startsWith(base + path.sep);
+  };
+  const PATH_KEY: Record<string, string> = {
+    Read: "file_path",
+    Write: "file_path",
+    Edit: "file_path",
+    MultiEdit: "file_path",
+    NotebookEdit: "notebook_path",
+  };
+  return async (toolName, input) => {
+    if (toolName.startsWith("mcp__workbench__")) return { behavior: "allow", updatedInput: input };
+    if (toolName === "WebSearch" || toolName === "TodoWrite") {
+      return { behavior: "allow", updatedInput: input };
+    }
+    if (toolName in PATH_KEY) {
+      const p = (input as Record<string, unknown>)[PATH_KEY[toolName]];
+      if (!inside(p)) return { behavior: "deny", message: `拒绝越界路径：${String(p)}（仅允许客户目录内）` };
+      return { behavior: "allow", updatedInput: input };
+    }
+    if (toolName === "Glob" || toolName === "Grep") {
+      const p = (input as Record<string, unknown>).path;
+      if (p !== undefined && !inside(p)) {
+        return { behavior: "deny", message: `拒绝越界搜索路径：${String(p)}` };
+      }
+      return { behavior: "allow", updatedInput: input };
+    }
+    return { behavior: "deny", message: `工具 ${toolName} 未被安全策略允许` };
+  };
+}
 
 async function loadSystemPrompt(): Promise<string> {
   const p = path.join(process.cwd(), "prompts", "system.md");
@@ -86,10 +126,11 @@ export async function runTurn(input: RunTurnInput): Promise<RunTurnOutput> {
     tools: [buildSubmitTool(sink)],
   });
 
-  const attachNote =
-    input.attachments && input.attachments.length
-      ? `\n\n客户本轮附带了文件（已存到当前目录，可用 Read 读取）：${input.attachments.join(", ")}`
-      : "";
+  // 附件名客户可控：只取 basename，杜绝借文件名做路径穿越/误导 Read 越界
+  const safeAttachments = (input.attachments ?? []).map((a) => path.basename(a)).filter(Boolean);
+  const attachNote = safeAttachments.length
+    ? `\n\n客户本轮附带了文件（已存到当前目录，可用 Read 读取）：${safeAttachments.join(", ")}`
+    : "";
 
   const prompt = `## 最近对话
 ${recentContext(history)}
@@ -111,6 +152,7 @@ ${input.customerInput}${attachNote}
       systemPrompt: system,
       model,
       mcpServers: { workbench: submitServer },
+      // 去掉 WebFetch（SSRF/外传风险）；文件工具由 canUseTool 逐次校验路径
       allowedTools: [
         "Read",
         "Write",
@@ -118,12 +160,13 @@ ${input.customerInput}${attachNote}
         "Glob",
         "Grep",
         "WebSearch",
-        "WebFetch",
         "mcp__workbench__submit_turn",
       ],
       // 不加载大 repo 的 CLAUDE.md / 项目设置，保持每个客户会话隔离
       settingSources: [],
-      permissionMode: "bypassPermissions",
+      // 关键：不再 bypass。permissionMode default + canUseTool 硬性约束路径，防越界写/读与 SSRF
+      permissionMode: "default",
+      canUseTool: makeCanUseTool(dir),
       maxTurns,
     },
   })) {

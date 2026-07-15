@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { readState, readAllDocs, readConversation } from "@/lib/clients";
+import { authError } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  const denied = authError(req);
+  if (denied) return denied;
   const { slug } = await params;
   const state = await readState(slug);
   if (!state) {

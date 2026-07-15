@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { readState, writeState, appendConversation } from "@/lib/clients";
 import { runTurn } from "@/lib/agent";
 import { commitClient } from "@/lib/git";
+import { authError } from "@/lib/auth";
 
 export const runtime = "nodejs";
 // agent 单轮可能较久（调研 + 多文件写入）
 export const maxDuration = 800;
 
 export async function POST(req: Request) {
+  const denied = authError(req);
+  if (denied) return denied;
   const { slug, input, attachments } = (await req.json()) as {
     slug?: string;
     input?: string;

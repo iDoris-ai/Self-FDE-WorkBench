@@ -25,6 +25,14 @@ pnpm dev                    # http://localhost:3939
 
 打开页面 → 左栏建一个客户 → 中间说你的情况和诉求 → 右栏看规格实时生成 → 满意后 commit。
 
+## 安全模型
+
+客户输入原样进 prompt，故对 prompt injection 做了硬性约束（不靠"cwd 看起来隔离"）：
+
+- **工具白名单 + 路径闸**：agent 不再 `bypassPermissions`；`canUseTool` 逐次校验 Read/Write/Edit 的路径**必须落在该客户目录内**，越界（绝对路径 / `..`）一律拒绝；去掉了 `WebFetch`（SSRF/外传风险），检索仅留 `WebSearch`；其余工具（Bash 等）默认拒绝。
+- **API 鉴权**：设 `WORKBENCH_TOKEN` 后所有 API 需带 `x-workbench-token` 匹配头；不设则仅本机用，`dev`/`start` 默认 `bind 127.0.0.1`。**公网/无人值守部署务必设 token 或前置鉴权代理。**
+- **路径穿越防护**：`clientDir` 校验 slug 不含分隔符/上跳且解析后落在 `clients/` 内；附件名只取 basename。
+
 ## 认证
 
 - **本地自用**：机器已 `claude login`（Pro/Max 订阅）即可，SDK 复用订阅，**无需 API key**。

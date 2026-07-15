@@ -5,9 +5,9 @@
   "description": "FDE Copilot — 客户售前/持续测试的多模态对话 → loop-ready spec 生成器（Claude Agent SDK）",
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 3939",
+    "dev": "next dev -H 127.0.0.1 -p 3939",
     "build": "next build",
-    "start": "next start -p 3939",
+    "start": "next start -H 127.0.0.1 -p 3939",
     "typecheck": "tsc --noEmit",
     "lint": "next lint"
   },

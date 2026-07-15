@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { readState } from "@/lib/clients";
 import { commitClient } from "@/lib/git";
+import { authError } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const denied = authError(req);
+  if (denied) return denied;
   const { slug, push } = (await req.json()) as { slug?: string; push?: boolean };
   if (!slug) {
     return NextResponse.json({ error: "缺少 slug" }, { status: 400 });
