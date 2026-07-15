@@ -45,3 +45,5 @@
 - 想完全自持、有技术 → **② 自持（开源）**
 - 要本地模型 / 常驻 / 企业级 → **③ 专属 Mac Mini（$1000/月）**
 - 复杂商业场景 → ③ + **企业咨询**（见 ECONOMIC_MODEL）
+
+> **中国大陆注意**：Cloudflare 在陆被 GFW 干扰，① 免费 Cloudflare 路径对国内访问不稳。国内改用：家庭私有访问走 **mesh VPN（Tailscale/ZeroTier）**、对外服务走 **frp + 备案 VPS（阿里云/腾讯云）**——详见 [DEPLOY-PLATFORM.md 的「中国大陆部署」](./DEPLOY-PLATFORM.md#中国大陆部署cloudflare-tunnel-在陆不可靠时)。

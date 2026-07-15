@@ -106,6 +106,17 @@ cloudflared tunnel run workbench
 Zero Trust → Access → Applications，为每个 hostname 建一个 Self-hosted 应用，策略限定你的邮箱/组织。**这样只有登录用户能到达 Tunnel**，比应用内 shared-secret 更正规。
 > capability-packs（管凭证 + 能执行 + 能发布）**务必**放 Access 后面，别裸暴露。
 
+## 中国大陆部署（Cloudflare Tunnel 在陆不可靠时）
+
+⚠️ **Cloudflare 的 IP 被 GFW 干扰，Tunnel 在中国大陆不保证可用/稳定**：非企业版无国内节点、Pages 在陆不可用、WARP 也被封。所以上面的 Cloudflare 方案主要适用**境外访问**。国内换方案：
+
+| 场景 | 方案 | 备案 |
+|---|---|---|
+| **公网 web 访问**（对外服务） | **frp / nps 自建反向代理**：跑在有公网 IP 的国内 VPS（阿里云/腾讯云 ECS）上 frps，Mac Mini 上 frpc。阿里云/腾讯云**没有等价的免费 Tunnel 产品**，基本靠 frp 自建。 | 公网**域名需 ICP 备案**；发布公众号/小红书本就要合规 |
+| **家庭私有访问**（只你/家人访问自己的 Mac Mini） | **Tailscale / ZeroTier** 之类 mesh VPN：免公网暴露、**免备案**。国内连通性看情况，可自建 **Headscale / ZeroTier moon** 提升稳定性。 | 免（不对公网开放） |
+
+**取舍**：个人/家庭优先 mesh VPN（简单、免备案、主权强）；要真正对公众提供服务再上 frp + 备案 VPS。企业场景通常本就有备案域名和云资源，frp 或云厂商内网穿透即可。
+
 ## 密钥 / 配置清单（都在 Mac Mini 本地，不上云、不入库）
 
 | 凭证 | 位置 | 谁用 |
