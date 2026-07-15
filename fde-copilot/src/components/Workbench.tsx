@@ -1,8 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ClientState, ConversationEntry, TurnResult } from "@/lib/types";
+import type { ClientState, ConversationEntry, TurnResult, Usage } from "@/lib/types";
 import { SPEC_DOCS } from "@/lib/types";
+
+const fmtTokens = (n: number) =>
+  n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : `${n}`;
+const fmtCost = (u: number) => (u >= 0.01 ? `$${u.toFixed(2)}` : `$${u.toFixed(4)}`);
+const fmtSecs = (ms: number) => {
+  const s = Math.round(ms / 1000);
+  return s >= 60 ? `${Math.floor(s / 60)}m${s % 60}s` : `${s}s`;
+};
 
 interface ClientDetail {
   state: ClientState;
@@ -19,6 +27,7 @@ export default function Workbench() {
   const [newName, setNewName] = useState("");
   const [activeDoc, setActiveDoc] = useState<string>("SPEC.md");
   const [toast, setToast] = useState<{ msg: string; err?: boolean } | null>(null);
+  const [usage, setUsage] = useState<Usage | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const flash = (msg: string, err = false) => {
@@ -39,12 +48,36 @@ export default function Workbench() {
     setDetail(j);
   }, []);
 
-  useEffect(() => {
-    loadClients();
-  }, [loadClients]);
+  const loadUsage = useCallback(async () => {
+    try {
+      const r = await fetch("/api/usage");
+      if (!r.ok) return;
+      const j = await r.json();
+      setUsage(j.global as Usage);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
-    if (activeSlug) loadDetail(activeSlug);
+    loadClients();
+    loadUsage();
+    // 每 3 分钟刷新一次用量（不必实时）
+    const t = setInterval(loadUsage, 180_000);
+    return () => clearInterval(t);
+  }, [loadClients, loadUsage]);
+
+  // 刷新后恢复上次选中的客户（对话历史从服务端 conversation.jsonl 重新加载）
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("fde:activeSlug") : null;
+    if (saved) setActiveSlug(saved);
+  }, []);
+
+  useEffect(() => {
+    if (activeSlug) {
+      loadDetail(activeSlug);
+      if (typeof window !== "undefined") localStorage.setItem("fde:activeSlug", activeSlug);
+    }
   }, [activeSlug, loadDetail]);
 
   useEffect(() => {
@@ -103,7 +136,7 @@ export default function Workbench() {
       flash(`网络错误：${(e as Error).message}`, true);
     } finally {
       setSending(false);
-      await Promise.all([activeSlug ? loadDetail(activeSlug) : null, loadClients()]);
+      await Promise.all([activeSlug ? loadDetail(activeSlug) : null, loadClients(), loadUsage()]);
     }
   };
 
@@ -122,8 +155,29 @@ export default function Workbench() {
   const readiness = detail?.state.lastReadiness;
 
   return (
-    <div className="app">
-      {/* 左：客户列表 */}
+    <div className="shell">
+      <header className="topbar">
+        <div className="brand">FDE Copilot</div>
+        <div className="stats">
+          <span className="stat" title="累计输入/输出 token">
+            🔢 <b>{usage ? fmtTokens(usage.inputTokens + usage.outputTokens) : "—"}</b> tokens
+            {usage && usage.cacheReadTokens > 0 && (
+              <em className="dim"> ({fmtTokens(usage.cacheReadTokens)} 缓存)</em>
+            )}
+          </span>
+          <span className="stat" title="模型/agent 墙钟运行时间（机器/电力消耗代理量）">
+            ⚙️ <b>{usage ? fmtSecs(usage.computeMs) : "—"}</b> 计算秒
+          </span>
+          <span className="stat" title="成本估算（Claude SDK 报告的等效 API 成本）">
+            💰 <b>{usage ? fmtCost(usage.costUsd) : "—"}</b>
+          </span>
+          <span className="stat dim" title="累计对话轮次">
+            {usage ? usage.turns : 0} 轮 · 每 3 分钟刷新
+          </span>
+        </div>
+      </header>
+      <div className="app">
+        {/* 左：客户列表 */}
       <div className="col">
         <div className="col-head">
           <h2>客户</h2>
@@ -263,6 +317,7 @@ export default function Workbench() {
           {!detail && <div className="empty">规格文档会随对话实时生成</div>}
           {detail && <div className="doc">{detail.docs[activeDoc] ?? "（空）"}</div>}
         </div>
+      </div>
       </div>
     </div>
   );

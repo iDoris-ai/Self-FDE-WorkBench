@@ -74,10 +74,45 @@ textarea:focus {
   border-color: var(--accent);
 }
 
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-shrink: 0;
+}
+.topbar .brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.topbar .stats {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.topbar .stat b {
+  color: var(--accent);
+}
+.topbar .stat .dim,
+.topbar .stat.dim {
+  color: var(--muted);
+  font-style: normal;
+}
 .app {
   display: grid;
   grid-template-columns: 240px 1fr 1fr;
-  height: 100vh;
+  flex: 1;
+  min-height: 0;
 }
 
 .col {

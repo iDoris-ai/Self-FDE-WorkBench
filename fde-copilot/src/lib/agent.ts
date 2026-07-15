@@ -4,7 +4,8 @@ import { z } from "zod";
 import { query, tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import type { CanUseTool } from "@anthropic-ai/claude-agent-sdk";
 import { clientDir, readConversation } from "./clients";
-import type { ConversationEntry, TurnResult } from "./types";
+import type { ConversationEntry, TurnResult, Usage } from "./types";
+import { ZERO_USAGE } from "./types";
 
 /**
  * 权限闸（对抗 prompt injection）：客户输入原样进 prompt，故必须硬性约束工具。
@@ -109,6 +110,8 @@ export interface RunTurnOutput {
   /** 若 agent 未调用 submit_turn，用于兜底提示 */
   usedFallback: boolean;
   rawText: string;
+  /** 本轮用量（token / 计算量 / 成本） */
+  usage: Usage;
 }
 
 /**
@@ -146,6 +149,7 @@ ${input.customerInput}${attachNote}
   const model = process.env.CLAUDE_MODEL || undefined;
 
   let rawText = "";
+  const usage: Usage = { ...ZERO_USAGE, turns: 1 };
   for await (const msg of query({
     prompt,
     options: {
@@ -169,13 +173,25 @@ ${input.customerInput}${attachNote}
       for (const block of msg.message.content) {
         if (block.type === "text") rawText += block.text;
       }
-    } else if (msg.type === "result" && "result" in msg && typeof msg.result === "string") {
-      if (!rawText) rawText = msg.result;
+    } else if (msg.type === "result") {
+      // 结果消息携带 usage / 成本 / 墙钟——累进本轮用量
+      if ("usage" in msg && msg.usage) {
+        usage.inputTokens += msg.usage.input_tokens ?? 0;
+        usage.outputTokens += msg.usage.output_tokens ?? 0;
+        usage.cacheReadTokens += msg.usage.cache_read_input_tokens ?? 0;
+      }
+      if ("total_cost_usd" in msg && typeof msg.total_cost_usd === "number") {
+        usage.costUsd += msg.total_cost_usd;
+      }
+      if ("duration_ms" in msg && typeof msg.duration_ms === "number") {
+        usage.computeMs += msg.duration_ms;
+      }
+      if ("result" in msg && typeof msg.result === "string" && !rawText) rawText = msg.result;
     }
   }
 
   if (sink.value) {
-    return { result: sink.value, usedFallback: false, rawText };
+    return { result: sink.value, usedFallback: false, rawText, usage };
   }
 
   // 兜底：agent 没调 submit_turn，用其最终文本当回复
@@ -186,5 +202,5 @@ ${input.customerInput}${attachNote}
     readiness: { score: 0, loop_ready: false, missing: ["agent 未提交结构化结果"] },
     updated_docs: [],
   };
-  return { result: fallback, usedFallback: true, rawText };
+  return { result: fallback, usedFallback: true, rawText, usage };
 }

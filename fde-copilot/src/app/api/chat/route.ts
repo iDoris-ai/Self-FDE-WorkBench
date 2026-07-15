@@ -3,6 +3,7 @@ import { readState, writeState, appendConversation } from "@/lib/clients";
 import { runTurn } from "@/lib/agent";
 import { commitClient } from "@/lib/git";
 import { authError } from "@/lib/auth";
+import { addUsage, ZERO_USAGE } from "@/lib/types";
 
 export const runtime = "nodejs";
 // agent 单轮可能较久（调研 + 多文件写入）
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
     rounds: state.rounds + 1,
     status: nextStatus,
     lastReadiness: out.result.readiness,
+    usage: addUsage(state.usage ?? ZERO_USAGE, out.usage),
   });
 
   // 5. 可选自动提交

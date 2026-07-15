@@ -1,5 +1,38 @@
 // 系统贯穿的类型定义
 
+/** 用量：token 消耗 + 计算量(墙钟) + 成本估算 */
+export interface Usage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  /** 成本估算（USD）：Claude 侧取 SDK 的 total_cost_usd */
+  costUsd: number;
+  /** 计算量代理：模型/agent 墙钟毫秒（"计算秒" = computeMs/1000） */
+  computeMs: number;
+  /** 累计轮次/调用数 */
+  turns: number;
+}
+
+export const ZERO_USAGE: Usage = {
+  inputTokens: 0,
+  outputTokens: 0,
+  cacheReadTokens: 0,
+  costUsd: 0,
+  computeMs: 0,
+  turns: 0,
+};
+
+export function addUsage(a: Usage, b: Usage): Usage {
+  return {
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+    cacheReadTokens: a.cacheReadTokens + b.cacheReadTokens,
+    costUsd: a.costUsd + b.costUsd,
+    computeMs: a.computeMs + b.computeMs,
+    turns: a.turns + b.turns,
+  };
+}
+
 export interface ClientState {
   slug: string;
   name: string;
@@ -8,6 +41,8 @@ export interface ClientState {
   rounds: number;
   status: "intake" | "building" | "testing" | "ready";
   lastReadiness: Readiness | null;
+  /** 该客户累计用量 */
+  usage?: Usage;
 }
 
 export interface Readiness {
