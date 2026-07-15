@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-zh="三个工具与流程 — Self-FDE WorkBench">The Tools & Flow — Self-FDE WorkBench</title>
+<meta name="description" content="How the WorkBench turns one sentence into your own bespoke AI tool: fde-copilot elicits the spec, loop-engineer builds it, capability-packs supplies atomic abilities." data-zh="WorkBench 怎么把一句话变成你的专属 AI 工具：fde-copilot 问出规格、loop-engineer 造出来、capability-packs 提供原子能力。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230A0B0D'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23FF6B35'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  .flow{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;margin:8px 0 8px}
+  .flow .step{flex:1;min-width:150px;background:var(--ink-2);border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px}
+  .flow .step .n{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--signal)}
+  .flow .step h4{font-size:15px;margin:8px 0 6px}
+  .flow .step p{font-size:12.5px;margin:0;color:var(--paper-dim)}
+  .flow .arrow{align-self:center;color:var(--muted)}
+  .tool{display:grid;grid-template-columns:1fr 1.15fr;gap:44px;align-items:center;margin:64px 0}
+  .tool.flip{grid-template-columns:1.15fr 1fr}
+  .tool.flip .shot{order:-1}
+  .tool .no{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--signal);display:block;margin-bottom:12px}
+  .tool h3{font-family:var(--serif),var(--han);font-size:27px;margin-bottom:6px}
+  .tool .role{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:14px}
+  .tool ol{margin:12px 0 0;padding-left:18px}
+  .tool li{font-size:13.5px;color:var(--paper-dim);margin-bottom:6px}
+  .tool .port{font-family:var(--mono);font-size:11px;color:var(--teal);background:var(--teal-dim);padding:2px 8px;border-radius:4px}
+  .shot{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--ink-3);box-shadow:0 16px 44px rgba(0,0,0,.55)}
+  .shot .bar{display:flex;gap:6px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--ink-2)}
+  .shot .bar i{width:10px;height:10px;border-radius:50%;background:#3a3f47;display:inline-block}
+  .shot img{display:block;width:100%;height:auto}
+  @media(max-width:820px){.tool,.tool.flip{grid-template-columns:1fr;gap:22px}.tool.flip .shot{order:0}}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="dot"></span>SELF-FDE / WORKBENCH</a>
+    <div class="nav-scroll">
+      <a class="link" href="/#thesis" data-zh="主张">Thesis</a>
+      <a class="link" href="/workbench.html" aria-current="page" data-zh="三个工具">The Tools</a>
+      <a class="link" href="/roles/expresser.html" data-zh="表达者">Expresser</a>
+      <a class="link" href="/roles/innovator.html" data-zh="创新者">Innovator</a>
+      <a class="link" href="/roles/builder.html" data-zh="建设者">Builder</a>
+      <a class="link" href="/os.html" data-zh="三个操作系统">Three OS</a>
+      <a class="link" href="/vision.html" data-zh="蓝图">Blueprint</a>
+      <a class="link" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench">GitHub ↗</a>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button class="lang-btn" data-lang="en" aria-pressed="true">EN</button>
+      <button class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
+    </div>
+  </div>
+</nav>
+
+<main>
+<header class="hero" style="padding-bottom:40px">
+  <div class="wrap">
+    <div class="kicker rise d1" data-zh="三个工具 · 一条流程">THREE TOOLS · ONE FLOW</div>
+    <h1 class="rise d2" style="max-width:16ch" data-zh="从<span class=&quot;glow&quot;>一句话</span>，<br>到你的专属工具">From <span class="glow">one sentence</span><br>to a tool that's yours</h1>
+    <p class="lede rise d3" data-zh="WorkBench 不是工具，是<b>打造工具的工作台</b>。你只要开口说痛点，它替你追问、调研、造出来、交付——一个只为你、贴你日常的 AI-native 工具。下面是它的三个工具和它们怎么串起来。">
+      WorkBench isn't a tool — it's a <b>bench for building tools</b>. You just speak your pain; it interrogates,
+      researches, builds and delivers — a bespoke AI-native tool that fits your day, only yours. Here are its three
+      tools and how they chain up.
+    </p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow" data-zh="流程">THE FLOW</div>
+    <div class="flow" style="margin-top:22px">
+      <div class="step"><span class="n">YOU</span><h4 data-zh="说痛点">Speak the pain</h4><p data-zh="用大白话讲你的难处，不用会写需求。">In plain words. No spec-writing needed.</p></div>
+      <span class="arrow">→</span>
+      <div class="step"><span class="n">fde-copilot</span><h4 data-zh="问出规格">Elicit the spec</h4><p data-zh="持续追问 + 替你调研，提炼成可开工的技术规格。">Keeps asking + researches, distilling a build-ready spec.</p></div>
+      <span class="arrow">→</span>
+      <div class="step"><span class="n">loop-engineer</span><h4 data-zh="造出来">Build it</h4><p data-zh="派便宜模型自主编码，闸+评审到过关。">Cheap models auto-code, gated + reviewed till it passes.</p></div>
+      <span class="arrow">→</span>
+      <div class="step"><span class="n">capability-packs</span><h4 data-zh="接原子能力">Plug abilities</h4><p data-zh="生成/发布等能力，配一次即可复用。">Generate / publish etc., configured once, reused.</p></div>
+      <span class="arrow">→</span>
+      <div class="step"><span class="n">DELIVER</span><h4 data-zh="你的工具">Your tool</h4><p data-zh="部署、跑起来，只为你服务。">Deployed and running, only for you.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+
+    <div class="tool">
+      <div>
+        <span class="no">TOOL 01 · fde-copilot</span>
+        <h3 data-zh="把「说不清」问成「能开工」">Turn "can't-articulate" into "build-ready"</h3>
+        <div class="role" data-zh="需求持续对话 → loop-ready 规格">Continuous elicitation → loop-ready spec</div>
+        <p data-zh="大多数人说不清自己的痛。fde-copilot 像个前置交付工程师，持续追问、能查的自己查、只有你知道的才问你，把口语诉求提炼成六类文档：需求 / 产品 / 功能 / 技术方案 / 交互验收 / 缺口——让下游「零上下文也能照着开工」。">
+          Most people can't spell out their own pain. fde-copilot acts like a forward-deployed engineer: it keeps
+          asking, researches what it can, asks only what only you know, and distills your words into six docs —
+          Spec / Product / Features / Tech / Interactions / Gaps — so downstream can build with zero context.
+        </p>
+        <ol>
+          <li data-zh="① 建客户，填一段背景（该客户下所有项目共享）">① Create a client with a background (shared by all its projects)</li>
+          <li data-zh="② 建项目，命名交付物 + 选类型（在线工具 / 应用 / 自动化…）">② Create a project, name the deliverable + pick a type</li>
+          <li data-zh="③ 用大白话说诉求，右栏实时长出六类规格 + 就绪度">③ Speak plainly; six docs + a readiness score grow live on the right</li>
+          <li data-zh="④ 够格了一键 commit，喂给 loop-engineer">④ Once ready, commit and hand it to loop-engineer</li>
+        </ol>
+      </div>
+      <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="/assets/shots/ui-fde.png" alt="fde-copilot 界面：客户/项目侧栏、对话、右侧交付物与规格、顶部用量" loading="lazy"></div>
+    </div>
+
+    <div class="tool flip">
+      <div>
+        <span class="no">TOOL 02 · loop-engineer</span>
+        <h3 data-zh="照规格，自主把工具造出来">Build the tool from the spec, autonomously</h3>
+        <div class="role" data-zh="自主编码循环 · 人只守主干">Autonomous coding loop · you just guard main</div>
+        <p data-zh="拿 fde-copilot 的规格，派便宜的外部模型（GLM / Kimi / DeepSeek）在隔离的 git worktree 里自主编码，跑「质量闸 → 跨模型评审 → 返工 → 开 PR → 合并」直到完成。指挥调度是确定性代码，干活用便宜模型，你只在最后守主干。">
+          Takes the spec and dispatches cheap external models (GLM / Kimi / DeepSeek) to code autonomously in
+          isolated git worktrees, running gate → cross-model review → rework → PR → merge until done. The
+          orchestration is deterministic; the labor is cheap models; you only guard main at the end.
+        </p>
+        <ol>
+          <li data-zh="① plan 把规格拆成带验收标准的 loop.json 任务">① plan breaks the spec into loop.json tasks with acceptance criteria</li>
+          <li data-zh="② 网页操作台 <span class='port'>:4040</span> 选 job → ▶ 运行">② Web console <span class='port'>:4040</span>: pick a job → ▶ Run</li>
+          <li data-zh="③ 看实时进度 + 逐任务 journal">③ Watch live progress + per-task journal</li>
+          <li data-zh="④ 质量闸 + 双模型评审都过才合并集成分支">④ Merges only after the gate + two-model review both pass</li>
+        </ol>
+      </div>
+      <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="/assets/shots/ui-loop.png" alt="loop-engineer 操作台：选 job、运行、实时进度、用量与任务" loading="lazy"></div>
+    </div>
+
+    <div class="tool">
+      <div>
+        <span class="no">TOOL 03 · capability-packs</span>
+        <h3 data-zh="配一次，就能反复调用的原子能力">Atomic abilities: configure once, call forever</h3>
+        <div class="role" data-zh="能力包 · 网页账号配置">Capability packs · web account config</div>
+        <p data-zh="造工具时背后要调一些基础能力：生成插画 / PPT / PDF、发布公众号 / 小红书、抓素材调研（agent-reach）……capability-packs 把它们做成配一次即可复用的原子能力。发布类需要你自己的账号——在网页里填，凭证只存本地、密文显示、绝不入库；没配好会被拦，不会拿空凭证乱发。">
+          Building a tool calls base abilities behind the scenes: generate illustration / PPT / PDF, publish to
+          WeChat / Xiaohongshu, fetch material for research… capability-packs wraps these into atomic abilities you
+          configure once and reuse. Publishing needs your own account — fill it on the web page; credentials stay
+          local, masked, never committed; missing ones are blocked, never fired with empty creds.
+        </p>
+        <ol>
+          <li data-zh="① 网页 <span class='port'>:4141</span> 填各平台账号（本地存、密文、不入库）">① Web <span class='port'>:4141</span>: enter platform accounts (local, masked, gitignored)</li>
+          <li data-zh="② 发布类缺账号自动拦截，指引去配置">② Publish packs block until configured, with guidance</li>
+          <li data-zh="③ agent 造工具时按需 invoke 对应能力">③ Agents invoke the abilities on demand while building</li>
+        </ol>
+      </div>
+      <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="/assets/shots/ui-cap.png" alt="capability-packs 网页：能力包列表 + 各平台账号配置表单" loading="lazy"></div>
+    </div>
+
+  </div>
+</section>
+
+<section style="padding:20px 0 80px">
+  <div class="wrap">
+    <div class="eyebrow" data-zh="你的自由度">YOUR FREEDOM</div>
+    <p style="max-width:64ch;margin-top:16px" data-zh="全部<b>开源</b>。你可以自己搞一台 Mac Mini 跑起来完全自持；也可以短时租用我们的公共工作坊把工具造完带走；数据随时一键下载、清空或加密留存。付费买的是便利、可靠、专业——不是准入。核心目标：让普通人真正拥有自己的 AI-native 工具。">
+      All <b>open source</b>. Run it fully yourself on a Mac Mini, or rent the public workbench for a few days,
+      build your tool and take it with you — download, wipe or keep-encrypted anytime. You pay for convenience,
+      reliability, expertise — not for access. The goal: ordinary people truly owning their own AI-native tools.
+    </p>
+    <div class="hero-actions" style="margin-top:22px">
+      <a class="btn primary" href="https://github.com/AuraAIHQ/Self-FDE-WorkBench" data-zh="上手 / 看代码 <span>→</span>">Get started / code <span>→</span></a>
+      <a class="btn" href="/vision.html" data-zh="读完整蓝图">Read the blueprint</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<script src="/assets/i18n.js"></script>
+</body>
+</html>
