@@ -1,0 +1,67 @@
+# FDE Copilot
+
+> 客户售前 / 持续测试的多模态对话 → **loop-ready spec** 生成器
+> 子项目属于 `Self-FDE-WorkBench`，用 Claude Agent SDK（复用你的 Claude 订阅，零 API key）。
+
+## 它解决什么
+
+把客户零散、口语化、不完整的诉求，持续转成一套**下游 Claude Code loop 完全接触不到客户本人也能照着开工**的规格文档。每一轮客户输入都会：
+
+1. 融合进 6 类文档（Spec / Product / Features / Tech Spec / Interactions / Gaps）
+2. 自动检测缺口 —— **能查的 AI 自己调研，只有客户知道的抛问题让客户确认**
+3. 给出 readiness 就绪度，够格了就标 `loop-ready`
+4. 一键（或自动）commit 到本 repo 的 `clients/<客户>/`，供下游 loop 消费
+
+闭环：`初始化 → 持续对话（补缺口+调研+确认）→ 生成 spec → commit → 喂下游 loop → 边测边反馈 → 再循环`。
+
+## 快速开始
+
+```bash
+cd fde-copilot
+pnpm install
+cp .env.example .env        # 本机已 `claude login` 的话，什么都不用填
+pnpm dev                    # http://localhost:3939
+```
+
+打开页面 → 左栏建一个客户 → 中间说你的情况和诉求 → 右栏看规格实时生成 → 满意后 commit。
+
+## 认证
+
+- **本地自用**：机器已 `claude login`（Pro/Max 订阅）即可，SDK 复用订阅，**无需 API key**。
+- **无人值守服务器**：在该机器 `claude login`，或在 `.env` 填 `ANTHROPIC_API_KEY`。
+
+## 关键环境变量（`.env`）
+
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | 空 | 留空则用订阅认证 |
+| `CLAUDE_MODEL` | 空 | 留空跟随 Claude Code 默认 |
+| `AGENT_MAX_TURNS` | 40 | 每轮 agent 内部最大 turn 数 |
+| `AUTO_COMMIT` | false | 每轮自动 commit 客户目录 |
+| `AUTO_PUSH` | false | 自动 commit 时是否 push |
+
+## 客户目录长什么样
+
+```
+clients/<slug>/
+  SPEC.md          需求规格
+  PRODUCT.md       产品描述
+  FEATURES.md      feature 细节（用户故事+验收+优先级）
+  TECH_SPEC.md     技术方案
+  INTERACTIONS.md  逐步交互 + 检查/验收标准
+  GAPS.md          缺口台账（待客户回答 / 调研假设待确认 / 已关闭）
+  INTAKE.md        客户原话累积记录
+  state.json       进度与就绪度（.gitignore，不入库）
+  conversation.jsonl  会话日志（.gitignore，不入库）
+```
+
+前 7 个 `.md` 入库，就是喂给下游 loop 的 loop-ready 输入。
+
+## 下一版路线
+
+- 多模态输入落地：语音转写、PDF/Word/图片解析（v0 已留接口与占位）
+- 输出改为「每客户独立 GitHub repo」的可选模式
+- 下游 loop 触发：commit 后自动派发一个建系统的 Claude Code loop
+- 测试反馈回流：把下游 loop 的测试结果作为新一轮输入自动喂回
+
+架构细节见 [ARCHITECTURE.md](./ARCHITECTURE.md)。

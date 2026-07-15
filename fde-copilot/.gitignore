@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+.env
+.env.local
+
+# 客户目录中的会话日志与内部状态不入库；spec 文档本身入库。
+clients/**/conversation.jsonl
+clients/**/state.json
