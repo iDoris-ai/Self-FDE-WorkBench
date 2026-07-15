@@ -6,6 +6,38 @@
 > 本套（fde-copilot / loop-engineer / capability-packs）含 **Claude Code 本地 agent + 本地 FLUX 生图**，
 > 不能跑云端 serverless。标准形态：**一台常驻 Mac Mini 跑全部，Cloudflare Tunnel 映射到互联网。**
 
+## 这就是「自部署」路径（免费 · Apache 2.0 · 数字公共物品）
+
+**把 WorkBench 直接搬到你自己的电脑上跑**——这是我们 Apache 2.0 的核心价值，我们做的是公共物品。你搭好、验证、持续维护提升这套 agent，这就是**你的** WorkBench。（不想动手 → 见 [ECONOMIC_MODEL.md](./ECONOMIC_MODEL.md) 的分层：按量租用我们部署的 / 我们帮你部署。）
+
+### 仓库与三个子项目
+
+一个仓库，三个子项目（子目录）：
+
+| 子项目 | 目录 | 干什么 | 结合你自己的什么 |
+|---|---|---|---|
+| **fde-copilot** | `fde-copilot/` | 追问诉求 → loop-ready 规格 | **你的 Claude Code 订阅**（Agent SDK，`claude login` 即用，零 key） |
+| **loop-engineer** | `loop-engineer/` | 照规格自主编码造工具 | `claude -p` + 便宜模型 key（GLM/Kimi/DeepSeek/HiLinkup，见其 `.env.example`） |
+| **capability-packs** | `capability-packs/` | 生成/发布等原子能力 + 网页账号配置 | 本地 FLUX + agent-reach + 你各平台账号（网页填） |
+
+- 仓库：`github.com/AuraAIHQ/Self-FDE-WorkBench`
+- 每个子项目自带 `README.md` + `.env.example`（配置方式全在里面）。
+- 核心前提：**你自己的 Claude Code**（`claude login`，复用你的订阅）——fde-copilot / loop-engineer 的 orchestrator 都跑在它上面。
+
+### 三步跑起来（本机）
+
+```bash
+git clone https://github.com/AuraAIHQ/Self-FDE-WorkBench && cd Self-FDE-WorkBench
+claude login                                   # 复用你的 Claude 订阅（零 key）
+for d in fde-copilot loop-engineer capability-packs; do ( cd $d && pnpm install && cp -n .env.example .env 2>/dev/null ); done
+# 各自 .env 填便宜模型 key / 平台账号（按需，见各子项目 README）
+( cd fde-copilot && pnpm dev ) &                          # :3939
+( cd loop-engineer && pnpm exec tsx src/cli.ts dashboard ) &  # :4040
+( cd capability-packs && pnpm web ) &                    # :4141
+```
+
+对外访问（可选）再叠 Cloudflare Tunnel + Access（下文）；国内见「中国大陆部署」。
+
 ## 为什么是 Mac Mini + Tunnel
 
 ```
