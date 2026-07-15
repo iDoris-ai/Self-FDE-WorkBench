@@ -75,12 +75,24 @@ async function body(req: import("node:http").IncomingMessage): Promise<Record<st
   }
 }
 
+// 只接受本机 Host，挡 DNS rebinding（本服务管凭证+能执行+能发布，必须严）
+function hostAllowed(host: string | undefined): boolean {
+  if (!host) return false;
+  const h = host.replace(/:\d+$/, "").replace(/^\[|\]$/g, "");
+  return h === "127.0.0.1" || h === "localhost" || h === "::1";
+}
+
 const server = createServer(async (req, res) => {
   const url = req.url ?? "/";
   const json = (code: number, obj: unknown) => {
     res.writeHead(code, { "content-type": "application/json" });
     res.end(JSON.stringify(obj));
   };
+  if (!hostAllowed(req.headers.host)) {
+    res.writeHead(403, { "content-type": "text/plain" });
+    res.end("forbidden host");
+    return;
+  }
   try {
     if (url === "/api/packs") return json(200, await loadPacks());
     if (url === "/api/accounts") return json(200, await accountStatus());
