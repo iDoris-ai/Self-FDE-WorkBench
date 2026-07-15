@@ -1,0 +1,12 @@
+{
+  "id": "publish-xhs",
+  "name": "发布小红书",
+  "category": "publish",
+  "description": "复用 blog 的 M3 小红书发布（automation，无官方发帖 API）。需在网页配置小红书登录 Cookie（会过期，需定期更新）。",
+  "backend": {
+    "type": "script",
+    "cmd": "bash \"${BLOG_DIR:-$HOME/Dev/mycelium/blog}/publish-xhs.sh\" \"$INPUT_CONTENT\""
+  },
+  "needsAuth": ["xiaohongshu"],
+  "inputs": { "content": "要发布的图文内容文件路径" }
+}

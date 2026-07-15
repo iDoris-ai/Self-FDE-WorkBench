@@ -1,0 +1,12 @@
+{
+  "id": "generate-illustration",
+  "name": "生成插画（小J 风格·本地 FLUX）",
+  "category": "generate",
+  "description": "用本地 FLUX 按 repo 手绘 IP 风格出一张插画，抠透明底并量化到体积闸内。无需账号。",
+  "backend": { "type": "local", "cmd": "adapters/gen-illustration.sh" },
+  "needsAuth": [],
+  "inputs": {
+    "prompt": "画面描述（英文更佳）",
+    "out": "输出 PNG 路径（默认 out/illustration.png）"
+  }
+}

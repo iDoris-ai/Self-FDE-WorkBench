@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+*.tsbuildinfo
+.env
+
+# 用户账号凭证——绝不入库
+accounts/*.json
+!accounts/.gitkeep
+
+# 生成产物
+out/
