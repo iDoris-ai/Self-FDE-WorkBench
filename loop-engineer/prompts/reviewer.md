@@ -13,7 +13,7 @@
 {{TASK_BLOCK}}
 
 ## 输出
-只输出一个 JSON 对象（可用 ```json 包裹），schema：
+**只输出一个 JSON 对象，第一个字符就是 `{`，不要任何解释文字、前后废话或 markdown 代码块。** schema：
 {
   "approved": boolean,        // 无阻塞问题才 true
   "score": number,            // 0-100

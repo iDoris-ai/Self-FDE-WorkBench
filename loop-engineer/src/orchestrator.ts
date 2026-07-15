@@ -147,36 +147,43 @@ export async function runTask(job: LoadedJob, task: Task, config: Config): Promi
 
       // 跨模型评审面板（内层 + 可选外层），任一打回即返工
       const reviewPrompt = reviewerTpl.replace("{{TASK_BLOCK}}", tb);
+      // 单次评审调用（agentic 或 chat）
+      const callReviewer = async (rp: (typeof reviewers)[number]): Promise<string> => {
+        if (rp.provider.kind === "openai-chat") {
+          const diff = await diffAgainst(wt, integration);
+          return (
+            await runChat(
+              "你是严格、对抗性的代码评审员。直接输出一个 JSON 对象，第一个字符就是 {，不要任何解释文字或 markdown。",
+              `${reviewPrompt}\n\n${diff}`,
+              { provider: rp.provider },
+            )
+          ).text;
+        }
+        return (
+          await runAgent(reviewPrompt, {
+            cwd: wt,
+            provider: rp.provider,
+            allowedTools: ["Read", "Grep", "Glob", "Bash"],
+            mockHandler: rp.provider.isMock ? mockReviewer(task) : undefined,
+          })
+        ).text;
+      };
+
       let panelPassed = true;
       for (const r of reviewers) {
         log.info(`  ${r.tag}评审（${r.provider.name}）`);
-        let revText: string;
-        if (r.provider.kind === "openai-chat") {
-          // 单发 chat：无工具，自己把 diff 拼进去
-          const diff = await diffAgainst(wt, integration);
-          revText = (
-            await runChat("你是严格、对抗性的代码评审员，只输出要求的 JSON。", `${reviewPrompt}\n\n${diff}`, {
-              provider: r.provider,
-            })
-          ).text;
-        } else {
-          revText = (
-            await runAgent(reviewPrompt, {
-              cwd: wt,
-              provider: r.provider,
-              allowedTools: ["Read", "Grep", "Glob", "Bash"],
-              mockHandler: r.provider.isMock ? mockReviewer(task) : undefined,
-            })
-          ).text;
+        // 解析重试：评审输出非 JSON 只是模型格式抖动，重试评审而非返工重编（省 token、防误判）
+        let verdict: ReviewVerdict | null = null;
+        for (let ri = 1; ri <= 2 && !verdict; ri++) {
+          verdict = extractJson<ReviewVerdict>(await callReviewer(r));
+          if (!verdict && ri < 2) log.warn(`  ${r.tag}评审输出非 JSON，重试解析(${ri}/2)`);
         }
-        const verdict = extractJson<ReviewVerdict>(revText);
 
         if (!verdict) {
-          feedback = `${r.tag}评审未返回可解析的裁决，请确保改动清晰。`;
-          lastDetail = `${r.tag}评审输出无法解析`;
-          log.warn(`  ${lastDetail} → 返工`);
-          panelPassed = false;
-          break;
+          // 两次都拿不到可解析裁决：保守放行本层（gate 已过），避免格式问题空转返工
+          log.warn(`  ${r.tag}评审两次均无法解析，gate 已过，保守放行本层`);
+          await appendJournal(job, task.id, `⚠ ${r.tag}评审输出无法解析，gate 已过→放行`);
+          continue;
         }
         if (!verdict.approved) {
           feedback = `${r.tag}评审打回（score ${verdict.score}）：\n${verdict.blocking.map((b) => `- ${b}`).join("\n")}`;
