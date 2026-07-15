@@ -29,10 +29,10 @@ export async function saveAccount(platformId: string, values: Record<string, unk
     if (typeof v === "string" && v.trim()) clean[f.key] = v.trim();
   }
   await fs.mkdir(ACCOUNTS_DIR, { recursive: true });
-  const p = accountPath(platformId);
-  await fs.writeFile(p, JSON.stringify(clean, null, 2), "utf8");
+  const filePath = accountPath(platformId);
+  await fs.writeFile(filePath, JSON.stringify(clean, null, 2), "utf8");
   // 凭证文件仅本人可读写
-  await fs.chmod(p, 0o600).catch(() => {});
+  await fs.chmod(filePath, 0o600).catch(() => {});
 }
 
 /** 该平台是否已配齐必填（非可选）字段 */
