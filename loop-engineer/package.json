@@ -1,0 +1,25 @@
+{
+  "name": "loop-engineer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "指挥大师：轮询 loop-ready spec，派 GLM 编码 / Kimi 跨模型审，闸-返工-PR-合并的自主编码循环",
+  "bin": {
+    "loop-engineer": "src/cli.ts"
+  },
+  "scripts": {
+    "plan": "tsx src/cli.ts plan",
+    "run": "tsx src/cli.ts run",
+    "status": "tsx src/cli.ts status",
+    "smoke": "bash scripts/smoke.sh",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
