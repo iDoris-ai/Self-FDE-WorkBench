@@ -1,0 +1,12 @@
+{
+  "$schema": "见 ARCHITECTURE.md",
+  "watchDirs": ["../fde-copilot/clients"],
+  "pollIntervalMs": 15000,
+  "maxAttempts": 3,
+  "providers": {
+    "planner": "claude",
+    "coder": "glm",
+    "reviewer": "kimi"
+  },
+  "notes": "把 coder/reviewer 改成 'mock' 可无 key 本地跑通编排。watchDirs 下任意含 loop.json 且有 todo 任务的目录会被当作 job。"
+}
