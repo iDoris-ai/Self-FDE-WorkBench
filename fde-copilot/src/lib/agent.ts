@@ -25,6 +25,7 @@ function makeCanUseTool(root: string): CanUseTool {
     NotebookEdit: "notebook_path",
   };
   return async (toolName, input) => {
+    if (process.env.CANUSE_DEBUG) console.error(`[canUseTool] ${toolName}`);
     if (toolName.startsWith("mcp__workbench__")) return { behavior: "allow", updatedInput: input };
     if (toolName === "WebSearch" || toolName === "TodoWrite") {
       return { behavior: "allow", updatedInput: input };
@@ -152,19 +153,13 @@ ${input.customerInput}${attachNote}
       systemPrompt: system,
       model,
       mcpServers: { workbench: submitServer },
-      // 去掉 WebFetch（SSRF/外传风险）；文件工具由 canUseTool 逐次校验路径
-      allowedTools: [
-        "Read",
-        "Write",
-        "Edit",
-        "Glob",
-        "Grep",
-        "WebSearch",
-        "mcp__workbench__submit_turn",
-      ],
+      // 关键：文件/搜索工具「不」放进 allowedTools——放进去会被免问放行、绕过 canUseTool。
+      // 只免问放行确定安全的 WebSearch 与自有 MCP 工具；Read/Write/Edit/Glob/Grep 一律
+      // 落到 canUseTool 逐次校验路径。WebFetch 既不放行也会被 canUseTool 默认拒绝（SSRF）。
+      allowedTools: ["WebSearch", "mcp__workbench__submit_turn"],
       // 不加载大 repo 的 CLAUDE.md / 项目设置，保持每个客户会话隔离
       settingSources: [],
-      // 关键：不再 bypass。permissionMode default + canUseTool 硬性约束路径，防越界写/读与 SSRF
+      // 不再 bypass；default + canUseTool 硬性约束路径，防越界写/读与 SSRF
       permissionMode: "default",
       canUseTool: makeCanUseTool(dir),
       maxTurns,
