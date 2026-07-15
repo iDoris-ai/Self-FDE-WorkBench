@@ -1,0 +1,9 @@
+{
+  "id": "research-fetch",
+  "name": "抓素材 / 研究（agent-reach）",
+  "category": "research",
+  "description": "用 agent-reach 抓取小红书/YouTube/Twitter/GitHub 等平台内容做选题与调研。只读，不发帖。部分渠道需自己的账户，多数零配置。",
+  "backend": { "type": "skill", "skill": "agent-reach", "note": "agent 用 Skill 工具调 agent-reach 抓取；把 URL/话题作为输入。" },
+  "needsAuth": [],
+  "inputs": { "query": "话题或平台 URL" }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "capability-packs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "能力包：把已有后端(生成 skill / blog 发布脚本 / agent-reach)抽象成可复用的 pack，供两个 agent 按需调用；含网页账号配置",
+  "scripts": {
+    "web": "tsx src/server.ts",
+    "packs": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

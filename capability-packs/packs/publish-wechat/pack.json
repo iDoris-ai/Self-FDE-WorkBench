@@ -1,0 +1,12 @@
+{
+  "id": "publish-wechat",
+  "name": "发布公众号",
+  "category": "publish",
+  "description": "复用 blog 的 WeChat 发布通道（官方 API）。需在网页配置公众号 AppID/AppSecret。",
+  "backend": {
+    "type": "script",
+    "cmd": "bash \"${BLOG_DIR:-$HOME/Dev/mycelium/blog}/publish.sh\" \"$INPUT_CONTENT\""
+  },
+  "needsAuth": ["wechat"],
+  "inputs": { "content": "要发布的内容文件路径或 slug" }
+}
