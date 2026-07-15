@@ -6,6 +6,8 @@ import { scanJobs, nextTask, hasPending, saveJob } from "./jobs.js";
 import { isGitRepo } from "./git.js";
 import { runTask } from "./orchestrator.js";
 import { planSpec } from "./planner.js";
+import { startDashboard } from "./dashboard.js";
+import { loadLedger, fmtTokens, fmtCost, fmtSecs } from "./usage.js";
 
 function arg(flag: string): string | undefined {
   const i = process.argv.indexOf(flag);
@@ -96,6 +98,21 @@ async function cmdRun(): Promise<void> {
   }
 }
 
+async function cmdUsage(): Promise<void> {
+  const l = await loadLedger();
+  const t = l.total;
+  log.raw(`\n${color.bold("累计用量")}  ${color.dim("(更新于 " + l.updatedAt + ")")}`);
+  log.raw(`  Token：${color.cyan(fmtTokens(t.inputTokens + t.outputTokens))}（输入 ${fmtTokens(t.inputTokens)} / 输出 ${fmtTokens(t.outputTokens)}）`);
+  log.raw(`  计算秒：${fmtSecs(t.computeMs)}   成本估算：${color.green(fmtCost(t.costUsd))}   调用：${t.calls}`);
+  const provs = Object.entries(l.byProvider);
+  if (provs.length) {
+    log.raw(`\n  ${color.dim("按供应商：")}`);
+    for (const [name, u] of provs) {
+      log.raw(`    ${name.padEnd(26)} tok ${fmtTokens(u.inputTokens + u.outputTokens).padStart(7)}  ${fmtSecs(u.computeMs).padStart(6)}  ${fmtCost(u.costUsd)}  ×${u.calls}`);
+    }
+  }
+}
+
 async function main(): Promise<void> {
   loadEnv();
   const cmd = process.argv[2];
@@ -106,12 +123,21 @@ async function main(): Promise<void> {
       return cmdPlan();
     case "run":
       return cmdRun();
+    case "dashboard": {
+      const port = Number(arg("--port") ?? process.env.LOOP_DASHBOARD_PORT ?? 4040);
+      await startDashboard(port);
+      return; // http server 保持进程存活
+    }
+    case "usage":
+      return cmdUsage();
     default:
       log.raw("Loop-Engineer — 自主编码循环指挥大师\n");
       log.raw("命令：");
-      log.raw("  run [--once]                         轮询 watchDirs，串行执行任务");
+      log.raw("  run [--once|--drain]                 轮询 watchDirs，串行执行任务");
       log.raw("  plan <specDir> --repo <p> [--verify] 把 loop-ready 规格拆成 loop.json 任务");
       log.raw("  status                               看所有 job/任务进度");
+      log.raw("  dashboard [--port 4040]              启动网页用量面板（token/计算秒/成本）");
+      log.raw("  usage                                终端打印累计用量");
       process.exit(cmd ? 1 : 0);
   }
 }

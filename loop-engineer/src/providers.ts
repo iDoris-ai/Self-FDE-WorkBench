@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
 import type { ResolvedProvider } from "./config.js";
+import { ZERO, estimateCost, recordUsage } from "./usage.js";
+import type { Usage } from "./usage.js";
 
 export interface RunAgentOpts {
   cwd: string;
@@ -17,6 +19,7 @@ export interface RunAgentOpts {
 export interface RunAgentResult {
   text: string;
   provider: string;
+  usage: Usage;
 }
 
 /**
@@ -31,7 +34,7 @@ export async function runAgent(prompt: string, opts: RunAgentOpts): Promise<RunA
     const text = opts.mockHandler
       ? await opts.mockHandler(prompt, opts.cwd)
       : "[mock] no handler";
-    return { text, provider: "mock" };
+    return { text, provider: "mock", usage: { ...ZERO, calls: 1 } };
   }
 
   const maxTurns = opts.maxTurns ?? 60;
@@ -56,7 +59,7 @@ export async function runAgent(prompt: string, opts: RunAgentOpts): Promise<RunA
 
   const env = { ...process.env, ...provider.env };
 
-  return new Promise<RunAgentResult>((resolve, reject) => {
+  const result = await new Promise<RunAgentResult>((resolve, reject) => {
     const child = spawn("claude", args, { cwd: opts.cwd, env });
     let stdout = "";
     let stderr = "";
@@ -77,9 +80,32 @@ export async function runAgent(prompt: string, opts: RunAgentOpts): Promise<RunA
         reject(new Error(`供应商 ${provider.name} 退出码 ${code}：${stderr.slice(0, 500)}`));
         return;
       }
-      resolve({ text: extractResult(stdout), provider: provider.name });
+      resolve({ text: extractResult(stdout), provider: provider.name, usage: extractUsage(stdout) });
     });
   });
+  await recordUsage(result.provider, result.usage, new Date().toISOString());
+  return result;
+}
+
+/** 从 `claude -p --output-format json` 的输出里取 usage/成本/墙钟 */
+function extractUsage(stdout: string): Usage {
+  try {
+    const obj = JSON.parse(stdout.trim()) as {
+      usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number };
+      total_cost_usd?: number;
+      duration_ms?: number;
+    };
+    return {
+      inputTokens: obj.usage?.input_tokens ?? 0,
+      outputTokens: obj.usage?.output_tokens ?? 0,
+      cacheReadTokens: obj.usage?.cache_read_input_tokens ?? 0,
+      costUsd: obj.total_cost_usd ?? 0,
+      computeMs: obj.duration_ms ?? 0,
+      calls: 1,
+    };
+  } catch {
+    return { ...ZERO, calls: 1 };
+  }
 }
 
 /**
@@ -95,34 +121,75 @@ export async function runChat(
   if (!provider.baseUrl || !provider.apiKey || !provider.model) {
     throw new Error(`runChat 需要 openai-chat 供应商（有 baseUrl/apiKey/model）：${provider.name}`);
   }
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 180_000);
-  try {
-    const res = await fetch(`${provider.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${provider.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        max_tokens: opts.maxTokens ?? 4000,
-        // 不设 temperature：部分模型（如 kimi-k2.7-code）只接受默认值
-      }),
-      signal: ctrl.signal,
-    });
-    if (!res.ok) {
-      throw new Error(`${provider.name} HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const timeoutMs = opts.timeoutMs ?? 180_000;
+  const startedMs = Date.now();
+  // 瞬时错误（429/503/网络）退避重试，避免一次限流就打死整个任务
+  const backoffMs = [2000, 5000, 12000];
+  let lastErr: Error | null = null;
+
+  for (let attempt = 0; attempt <= backoffMs.length; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(`${provider.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${provider.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: provider.model,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+          max_tokens: opts.maxTokens ?? 4000,
+          // 不设 temperature：部分模型（如 kimi-k2.7-code）只接受默认值
+        }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(timer);
+      // 瞬时错误：限流 429 与各类 5xx（含 Cloudflare 524 origin timeout）都退避重试
+      if (res.status === 429 || res.status >= 500) {
+        lastErr = new Error(`${provider.name} HTTP ${res.status}: ${(await res.text()).slice(0, 160)}`);
+        if (attempt < backoffMs.length) {
+          await new Promise((r) => setTimeout(r, backoffMs[attempt]));
+          continue; // 退避后重试
+        }
+        throw lastErr;
+      }
+      if (!res.ok) {
+        throw new Error(`${provider.name} HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+      }
+      const j = (await res.json()) as {
+        choices?: Array<{ message?: { content?: string } }>;
+        usage?: { prompt_tokens?: number; completion_tokens?: number };
+      };
+      const inTok = j.usage?.prompt_tokens ?? 0;
+      const outTok = j.usage?.completion_tokens ?? 0;
+      const usage: Usage = {
+        inputTokens: inTok,
+        outputTokens: outTok,
+        cacheReadTokens: 0,
+        costUsd: estimateCost(provider.model, inTok, outTok),
+        computeMs: Date.now() - startedMs,
+        calls: 1,
+      };
+      await recordUsage(provider.name, usage, new Date().toISOString());
+      return { text: j.choices?.[0]?.message?.content ?? "", provider: provider.name, usage };
+    } catch (e) {
+      clearTimeout(timer);
+      lastErr = e as Error;
+      // 网络/中断类瞬时错误也退避重试
+      const transient = /aborted|ECONNRESET|ETIMEDOUT|fetch failed|network/i.test(lastErr.message);
+      if (transient && attempt < backoffMs.length) {
+        await new Promise((r) => setTimeout(r, backoffMs[attempt]));
+        continue;
+      }
+      throw lastErr;
     }
-    const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    return { text: j.choices?.[0]?.message?.content ?? "", provider: provider.name };
-  } finally {
-    clearTimeout(timer);
   }
+  throw lastErr ?? new Error(`${provider.name} 调用失败`);
 }
 
 /** 从 `claude -p --output-format json` 的输出里取最终文本 */
