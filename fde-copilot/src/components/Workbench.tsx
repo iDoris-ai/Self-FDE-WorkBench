@@ -71,6 +71,13 @@ export default function Workbench() {
   const [newProject, setNewProject] = useState<{ client: string; name: string; dlvName: string; dlvType: DeliverableType } | null>(null);
   const t = STR[lang];
   const chatEndRef = useRef<HTMLDivElement>(null);
+  // 工作台切换条 URL（部署时用 NEXT_PUBLIC_WB_*_URL 覆盖为你的域名）
+  const WB = {
+    fde: process.env.NEXT_PUBLIC_WB_FDE_URL || "http://localhost:3939",
+    loop: process.env.NEXT_PUBLIC_WB_LOOP_URL || "http://localhost:4040",
+    packs: process.env.NEXT_PUBLIC_WB_PACKS_URL || "http://localhost:4141",
+    site: process.env.NEXT_PUBLIC_WB_SITE_URL || "http://localhost:8080",
+  };
 
   const flash = (msg: string, err = false) => {
     setToast({ msg, err });
@@ -217,6 +224,15 @@ export default function Workbench() {
 
   return (
     <div className="shell">
+      <div className="wbnav">
+        <span className="wbbrand">WORKBENCH</span>
+        <a href={WB.fde} className="cur">① 需求 fde-copilot</a>
+        <span className="wbsep">→</span>
+        <a href={WB.loop}>② 造 loop-engineer</a>
+        <span className="wbsep">→</span>
+        <a href={WB.packs}>③ 能力 capability-packs</a>
+        <a className="wbsite" href={WB.site}>官网 ↗</a>
+      </div>
       <header className="topbar">
         <div className="brand">
           <button className="ghost icon" onClick={() => setSidebar((s) => !s)} title={t.collapse}>

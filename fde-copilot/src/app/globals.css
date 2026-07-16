@@ -482,3 +482,44 @@ button.ghost.block {
   gap: 8px;
   margin-top: 16px;
 }
+
+/* 工作台切换条（贯穿三个 app） */
+.wbnav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--border);
+  background: #0d1117;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.wbnav a {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+.wbnav a:hover {
+  color: var(--text);
+  background: var(--panel);
+}
+.wbnav a.cur {
+  color: #041225;
+  background: var(--accent);
+  font-weight: 600;
+}
+.wbnav .wbbrand {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  margin-right: 2px;
+}
+.wbnav .wbsep {
+  color: #3a3f47;
+}
+.wbnav .wbsite {
+  margin-left: auto;
+}

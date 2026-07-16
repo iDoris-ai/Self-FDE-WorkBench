@@ -63,6 +63,27 @@ async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> 
   }
 }
 
+// 贯穿三个 app 的工作台切换条（URL 可用 WB_*_URL 环境变量覆盖，默认本地端口）
+function wbSwitcher(current: string): string {
+  const u = {
+    fde: process.env.WB_FDE_URL || "http://localhost:3939",
+    loop: process.env.WB_LOOP_URL || "http://localhost:4040",
+    packs: process.env.WB_PACKS_URL || "http://localhost:4141",
+    site: process.env.WB_SITE_URL || "http://localhost:8080",
+  };
+  const a = (k: string, url: string, label: string) =>
+    `<a href="${url}"${k === current ? ' class="cur"' : ""}>${label}</a>`;
+  return (
+    `<div class="wbnav"><span class="wbbrand">WORKBENCH</span>` +
+    a("fde", u.fde, "① 需求 fde-copilot") +
+    `<span class="wbsep">→</span>` +
+    a("loop", u.loop, "② 造 loop-engineer") +
+    `<span class="wbsep">→</span>` +
+    a("packs", u.packs, "③ 能力 capability-packs") +
+    `<a class="wbsite" href="${u.site}">官网 ↗</a></div>`
+  );
+}
+
 const PAGE = `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>Loop-Engineer</title>
 <style>
@@ -85,7 +106,8 @@ h2{font-size:14px;color:var(--muted);margin:26px 0 10px}
 .badge{padding:1px 7px;border-radius:999px;font-size:11px;border:1px solid var(--border)}
 .done{color:var(--green);border-color:var(--green)}.failed{color:#f85149;border-color:#f85149}
 .dim{color:var(--muted)}
-</style></head><body><div class="wrap">
+.wbnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;padding:8px 16px;border-bottom:1px solid var(--border);background:#0d1117;color:var(--muted);position:sticky;top:0;z-index:10}.wbnav a{color:var(--muted);text-decoration:none;padding:3px 9px;border-radius:6px}.wbnav a:hover{color:var(--text);background:var(--panel)}.wbnav a.cur{color:#041225;background:var(--accent);font-weight:600}.wbnav .wbbrand{font-weight:700;letter-spacing:.08em;color:var(--text);margin-right:2px}.wbnav .wbsep{color:#3a3f47}.wbnav .wbsite{margin-left:auto}
+</style></head><body><!--WBNAV--><div class="wrap">
 <div class="hd"><h1 data-i18n="title">Loop-Engineer 用量面板</h1><button id="langbtn">EN</button></div>
 <div class="sub" id="sub">…</div>
 <h2 data-i18n="console">操作台</h2>
@@ -229,7 +251,7 @@ export async function startDashboard(port: number): Promise<void> {
         return;
       }
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      res.end(PAGE);
+      res.end(PAGE.replace("<!--WBNAV-->", wbSwitcher("loop")));
     } catch (e) {
       res.writeHead(500, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: (e as Error).message }));
