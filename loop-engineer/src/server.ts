@@ -139,11 +139,55 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
-/** clientSlug/projectSlug → 规格目录（fde-copilot 的 clients/<c>/projects/<p>/） */
+/**
+ * slug 安全校验：slug 直接来自 /plan 请求体（多租户 Worker 传入），path.join 不阻止 `..`。
+ * 与 fde-copilot 的 clients.ts assertSafe 一致：拒绝含分隔符/`..`/空，从而挡路径穿越，
+ * 同时允许项目里既有的中文 slug（如 `格格` / `主项目`）。
+ */
+function assertSafeSlug(slug: string, label: string): void {
+  if (
+    !slug ||
+    slug.includes("/") ||
+    slug.includes("\\") ||
+    slug.includes("..") ||
+    slug.includes("\0")
+  ) {
+    throw new Error(`非法 ${label}：${slug}`);
+  }
+}
+
+/** clientSlug/projectSlug → 规格目录（fde-copilot 的 clients/<c>/projects/<p>/），带穿越防护 */
 function specDirFor(clientSlug: string, projectSlug: string): string {
+  assertSafeSlug(clientSlug, "clientSlug");
+  assertSafeSlug(projectSlug, "projectSlug");
   const clientsDir = config.watchDirs[0] ?? "../fde-copilot/clients";
   const base = path.isAbsolute(clientsDir) ? clientsDir : path.resolve(PROJECT_ROOT, clientsDir);
-  return path.join(base, clientSlug, "projects", projectSlug);
+  const dir = path.join(base, clientSlug, "projects", projectSlug);
+  // canonical-prefix 断言：解析后仍须落在 base 内（双保险，防绕过 slug 规则的编码穿越）
+  const resolved = path.resolve(dir);
+  const baseResolved = path.resolve(base);
+  if (resolved !== baseResolved && !resolved.startsWith(baseResolved + path.sep)) {
+    throw new Error(`规格目录越界：${clientSlug}/${projectSlug}`);
+  }
+  return dir;
+}
+
+/**
+ * repo 路径防护：repo 原样进 manifest → 成为 runTask 开 worktree、跑 coder、建 PR 的目标。
+ * 设了 LOOP_REPO_ROOT 时强制 repo 落在其下（白名单根前缀）；未设则至少拒绝 `..` 穿越。
+ */
+function assertSafeRepo(repo: string): void {
+  if (repo.includes("\0")) throw new Error(`非法 repo：${repo}`);
+  const root = process.env.LOOP_REPO_ROOT;
+  if (root) {
+    const rootResolved = path.resolve(root);
+    const repoResolved = path.resolve(repo);
+    if (repoResolved !== rootResolved && !repoResolved.startsWith(rootResolved + path.sep)) {
+      throw new Error(`repo 越界(不在 LOOP_REPO_ROOT 下)：${repo}`);
+    }
+  } else if (repo.split(/[\\/]/).includes("..")) {
+    throw new Error(`repo 含路径穿越：${repo}`);
+  }
 }
 
 async function exists(p: string): Promise<boolean> {
@@ -187,7 +231,15 @@ async function handlePlan(req: IncomingMessage, res: ServerResponse): Promise<vo
     send(res, 400, { error: "缺少 clientSlug / projectSlug / repo" });
     return;
   }
-  const specDir = specDirFor(clientSlug, projectSlug);
+  // 输入校验（slug 穿越防护 + repo 白名单）→ 非法一律 400，不落到 500
+  let specDir: string;
+  try {
+    specDir = specDirFor(clientSlug, projectSlug);
+    assertSafeRepo(repo);
+  } catch (e) {
+    send(res, 400, { error: (e as Error).message });
+    return;
+  }
   if (!(await exists(specDir))) {
     send(res, 404, { error: `规格目录不存在：${specDir}` });
     return;
@@ -234,14 +286,17 @@ async function handleRun(req: IncomingMessage, res: ServerResponse): Promise<voi
     send(res, 404, { error: `job 不存在：${jobId}` });
     return;
   }
-  if (rec.state === "coding" || rec.state === "reviewing" || queue.includes(jobId)) {
-    // 已在跑或已入队 → 幂等，不重复入队
-    send(res, 200, { started: true, state: rec.state });
+  // 契约 v2 · B1：入队语义，返回 {accepted, jobId, queuePos}。queuePos=0 表示正在跑。
+  if (rec.state === "coding" || rec.state === "reviewing") {
+    send(res, 200, { accepted: true, jobId, queuePos: 0 });
     return;
   }
-  setState(rec, "queued");
-  enqueue(jobId);
-  send(res, 200, { started: true, state: rec.state });
+  if (!queue.includes(jobId)) {
+    setState(rec, "queued");
+    enqueue(jobId);
+  }
+  const idx = queue.indexOf(jobId); // enqueue 后若空闲 worker 已同步 shift 走 → -1 → 正在跑
+  send(res, 200, { accepted: true, jobId, queuePos: idx < 0 ? 0 : idx + 1 });
 }
 
 async function handleStatus(res: ServerResponse, jobId: string): Promise<void> {
