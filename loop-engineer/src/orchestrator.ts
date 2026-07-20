@@ -64,13 +64,25 @@ export interface RunTaskResult {
   ok: boolean;
   status: Task["status"];
   detail: string;
+  /** 尽力开成的 PR 链接（无 remote/gh 时为空） */
+  prUrl?: string;
+}
+
+/** 阶段回调：供 HTTP 编排层（server.ts）把细粒度状态映射到 /status 契约 */
+export interface RunTaskHooks {
+  onPhase?: (phase: "coding" | "reviewing") => void;
 }
 
 /**
  * 跑单个任务的完整闭环：worktree → coder → gate → 跨模型 review → 返工(≤maxAttempts)
  * → PR(尽力) → 合并集成分支 → 标记 done。
  */
-export async function runTask(job: LoadedJob, task: Task, config: Config): Promise<RunTaskResult> {
+export async function runTask(
+  job: LoadedJob,
+  task: Task,
+  config: Config,
+  hooks?: RunTaskHooks,
+): Promise<RunTaskResult> {
   const repo = job.repoPath;
   const integration = job.manifest.integrationBranch;
   // per-task 模型路由：任务可覆盖全局默认（难任务派更强的模型）
@@ -109,10 +121,12 @@ export async function runTask(job: LoadedJob, task: Task, config: Config): Promi
   let feedback = "";
   let success = false;
   let lastDetail = "";
+  let prUrl: string | undefined;
 
   try {
     for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
       task.attempts = attempt;
+      hooks?.onPhase?.("coding");
       log.info(`  尝试 ${attempt}/${config.maxAttempts} · 编码中（${coder.name}）`);
 
       const workerPrompt = workerTpl
@@ -146,6 +160,7 @@ export async function runTask(job: LoadedJob, task: Task, config: Config): Promi
       }
 
       // 跨模型评审面板（内层 + 可选外层），任一打回即返工
+      hooks?.onPhase?.("reviewing");
       const reviewPrompt = reviewerTpl.replace("{{TASK_BLOCK}}", tb);
       // 评审 diff 预先算好，喂给两类 reviewer（agentic 也不必自己跑 git，从而可收成只读）
       const reviewDiff = await diffAgainst(wt, integration);
@@ -216,6 +231,7 @@ export async function runTask(job: LoadedJob, task: Task, config: Config): Promi
         `自主编码循环完成任务 ${task.id}。\n\n${task.spec}\n\n验收：\n${task.acceptance.map((a) => `- ${a}`).join("\n")}`,
       );
       await mergeToIntegration(integrationWt, branch, `Merge ${branch}: ${task.title}`);
+      prUrl = pr.url;
       task.status = "done";
       task.lastResult = `${lastDetail}；${pr.detail}`;
       log.ok(`  合并进 ${integration}；${pr.detail}`);
@@ -237,5 +253,5 @@ export async function runTask(job: LoadedJob, task: Task, config: Config): Promi
     await saveJob(job);
   }
 
-  return { ok: success, status: task.status, detail: lastDetail };
+  return { ok: success, status: task.status, detail: lastDetail, prUrl };
 }
