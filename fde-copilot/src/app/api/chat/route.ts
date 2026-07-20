@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { readProjectState, writeProjectState, appendConversation } from "@/lib/clients";
 import { runTurn } from "@/lib/agent";
 import { commitProject } from "@/lib/git";
-import { authError } from "@/lib/auth";
+import { scopedAuthError } from "@/lib/auth";
 import { addUsage, ZERO_USAGE } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -10,8 +10,6 @@ export const runtime = "nodejs";
 export const maxDuration = 800;
 
 export async function POST(req: Request) {
-  const denied = authError(req);
-  if (denied) return denied;
   const { clientSlug, projectSlug, input, attachments } = (await req.json()) as {
     clientSlug?: string;
     projectSlug?: string;
@@ -22,6 +20,10 @@ export async function POST(req: Request) {
   if (!clientSlug || !projectSlug || !input || !input.trim()) {
     return NextResponse.json({ error: "缺少 clientSlug / projectSlug / input" }, { status: 400 });
   }
+
+  // B3：参赛者会话用作用域 token（或 admin 全通）；越权访问他人项目 → 403
+  const denied = scopedAuthError(req, clientSlug, projectSlug);
+  if (denied) return denied;
 
   const state = await readProjectState(clientSlug, projectSlug);
   if (!state) return NextResponse.json({ error: "项目不存在" }, { status: 404 });
