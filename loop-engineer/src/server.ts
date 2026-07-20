@@ -30,6 +30,7 @@ import { isGitRepo } from "./git.js";
 import { checkWorkbenchToken } from "./auth.js";
 import { emitLifecycle } from "./lifecycle.js";
 import { createPool } from "./pool.js";
+import { installCallbackSink } from "./callback.js";
 import { log } from "./log.js";
 import type { Config, LoadedJob } from "./types.js";
 
@@ -366,6 +367,7 @@ async function router(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
 export async function startServer(port: number, host: string): Promise<void> {
   config = await loadConfig();
+  installCallbackSink(); // W5：把 HMAC 签名回调挂到 lifecycle（coding_done 等事件外发给 hack5）
   const server = createServer((req, res) => {
     router(req, res).catch((e) => {
       log.err(`请求处理异常：${(e as Error).message}`);
