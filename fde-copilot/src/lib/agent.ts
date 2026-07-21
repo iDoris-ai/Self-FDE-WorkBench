@@ -132,16 +132,135 @@ export interface RunTurnOutput {
   usage: Usage;
 }
 
+/** 从模型输出里稳健抽第一个 JSON 对象（容忍 ```json 包裹与前后废话）。 */
+function extractJsonObject<T>(text: string): T | null {
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const candidate = fence ? fence[1] : text;
+  const start = candidate.indexOf("{");
+  const end = candidate.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return null;
+  try {
+    return JSON.parse(candidate.slice(start, end + 1)) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 快 chat「直连」路径：不走 claude-agent-sdk（省掉每次起子进程的固定开销 ~40s），
+ * 直接调 OpenAI 兼容快模型（HiLinkup，如 MiniMax-M2.1-highspeed），一次请求出结构化 JSON，
+ * server 写 SPEC.md。实测 ~11s（vs sdk 单次调用 ~53s），延迟更低更稳。
+ * 触发：fastMode 且配了 HILINKUP_API_KEY 且 CHAT_DIRECT!=="false"。
+ */
+async function runTurnDirect(
+  input: RunTurnInput,
+  ctx: { dir: string; history: ConversationEntry[]; client: Awaited<ReturnType<typeof readClient>>; project: Awaited<ReturnType<typeof readProjectState>> },
+): Promise<RunTurnOutput> {
+  const { dir, history, client, project } = ctx;
+  const baseUrl = (process.env.HILINKUP_BASE_URL || "https://hilinkup.com/v1").replace(/\/$/, "");
+  const apiKey = process.env.HILINKUP_API_KEY!;
+  const model = process.env.CHAT_DIRECT_MODEL || "MiniMax-M2.1-highspeed";
+
+  const specContent = await fs.readFile(path.join(dir, "SPEC.md"), "utf8").catch(() => "");
+  const clientContext = client
+    ? `客户：${client.name}\n${client.background || "（客户未填背景）"}`
+    : "（无客户背景）";
+  const deliverableContext = project
+    ? `交付物：${project.deliverable.name}（类型：${project.deliverable.type}）`
+    : "（无交付物信息）";
+
+  const system = `你是快速需求 intake Copilot。把客户零散口语化的诉求，一点点并进一份精简、可增量的规格 SPEC.md，让下游一个「接触不到客户本人」的自动编码 loop 仅凭它就能建出 MVP。这是交互式对话,客户在等你的下一个问题,回答要快、准、克制、全程中文。
+
+SPEC.md 结构(一个文档承载全部)：## 一句话定位 / ## 目标用户 / ## 核心功能(每个一行+一句验收标准) / ## 范围(范围内、范围外) / ## 技术方向(可选,AI 假设标注「【假设·待确认】」) / ## 待确认 缺口(必须客户回答的问题、技术假设、已知风险)。
+
+本轮:在「当前 SPEC.md」基础上把客户新输入做增量修订(改相关小节,不整篇重写;空则写精简初稿)。不做联网调研,凭知识给合理技术方向并标「【假设·待确认】」。评估 readiness(0-100,loop_ready=够建一个可跑 MVP;不追求面面俱到)。
+
+**只输出一个 JSON 对象**(第一个字符就是 {,不要任何解释文字或 markdown 代码围栏),字段:
+- reply: string —— 给客户看的简短中文回复(一句话说本轮并进了什么 + 抛最关键的一个问题)
+- open_questions: array —— [{id:string, question:string, why:string}],必须客户回答的问题
+- readiness: object —— {score:int(0-100), loop_ready:bool, missing:string[]}
+- spec_markdown: string —— 更新后的完整 SPEC.md 全文`;
+
+  const user = `## 客户背景\n${clientContext}\n\n## ${deliverableContext}\n\n## 最近对话\n${recentContext(history)}\n\n## 当前 SPEC.md 全文\n${specContent || "（尚为空，请写精简初稿）"}\n\n## 客户本轮新输入\n${input.customerInput}`;
+
+  const timeoutMs = Number(process.env.CHAT_DIRECT_TIMEOUT_MS ?? 60_000);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  let j: {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
+  try {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        max_tokens: Number(process.env.CHAT_DIRECT_MAX_TOKENS ?? 3000),
+      }),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`直连 chat ${model} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    j = (await res.json()) as typeof j;
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const rawText = j.choices?.[0]?.message?.content ?? "";
+  const usage: Usage = {
+    ...ZERO_USAGE,
+    turns: 1,
+    inputTokens: j.usage?.prompt_tokens ?? 0,
+    outputTokens: j.usage?.completion_tokens ?? 0,
+  };
+
+  const parsed = extractJsonObject<Partial<TurnResult>>(rawText);
+  if (!parsed || typeof parsed.spec_markdown !== "string" || !parsed.reply) {
+    // 解析不出结构化结果：兜底，不写盘（避免把废话覆盖掉现有 SPEC.md）
+    const fallback: TurnResult = {
+      reply: parsed?.reply || "（本轮 Copilot 未返回结构化结果，请重试或补充信息。）",
+      open_questions: parsed?.open_questions ?? [],
+      research_notes: [],
+      readiness: parsed?.readiness ?? { score: 0, loop_ready: false, missing: ["直连 chat 未返回可解析结果"] },
+      updated_docs: [],
+    };
+    return { result: fallback, usedFallback: true, rawText, usage };
+  }
+
+  const body = parsed.spec_markdown.endsWith("\n") ? parsed.spec_markdown : parsed.spec_markdown + "\n";
+  await fs.writeFile(path.join(dir, "SPEC.md"), body, "utf8");
+
+  const result: TurnResult = {
+    reply: parsed.reply,
+    open_questions: parsed.open_questions ?? [],
+    research_notes: parsed.research_notes ?? [],
+    readiness: parsed.readiness ?? { score: 0, loop_ready: false, missing: [] },
+    updated_docs: ["SPEC.md"],
+    spec_markdown: parsed.spec_markdown,
+  };
+  return { result, usedFallback: false, rawText, usage };
+}
+
 /**
  * 跑一轮：给定客户新输入，让 agent 读现状→更新文档→调研→抛问题→submit_turn。
  * cwd 锁定为该客户目录，agent 直接就地读写 spec 文档。
  */
 export async function runTurn(input: RunTurnInput): Promise<RunTurnOutput> {
   const dir = projectDir(input.clientSlug, input.projectSlug);
-  const system = await loadSystemPrompt();
   const history = await readConversation(input.clientSlug, input.projectSlug);
   const client = await readClient(input.clientSlug);
   const project = await readProjectState(input.clientSlug, input.projectSlug);
+
+  // 快 chat「直连」快模型(默认,配了 HILINKUP_API_KEY 时):绕开 agent-sdk 子进程,~11s。
+  if (process.env.CHAT_FULL_SPEC !== "true" && process.env.HILINKUP_API_KEY && process.env.CHAT_DIRECT !== "false") {
+    return runTurnDirect(input, { dir, history, client, project });
+  }
+
+  const system = await loadSystemPrompt();
 
   const sink: { value: TurnResult | null } = { value: null };
   const submitServer = createSdkMcpServer({
