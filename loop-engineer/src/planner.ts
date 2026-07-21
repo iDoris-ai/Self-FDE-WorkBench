@@ -41,15 +41,9 @@ interface PlanOut {
  * 读 specDir 下的 loop-ready 规格，用 planner 供应商拆成任务，写/并入 specDir/loop.json。
  * 已存在的同 id 任务保留其 status（不重置进度）。
  */
-export async function planSpec(
-  specDir: string,
-  config: Config,
-  opts: { repo: string; baseBranch?: string; verify?: string[] },
-): Promise<void> {
-  const planner = resolveProvider(config.providers.planner);
-  const tpl = await fs.readFile(path.join(__dirname, "..", "prompts", "planner.md"), "utf8");
-
-  log.step(`拆解规格 ${specDir}（planner=${planner.name}）`);
+/** 用一个 provider 跑一次拆规格,返回可解析的 PlanOut 或 null(无可解析任务)。调用失败会 throw。 */
+async function callPlanner(providerName: string, tpl: string, specDir: string): Promise<PlanOut | null> {
+  const planner = resolveProvider(providerName);
   let res;
   if (planner.kind === "openai-chat") {
     // 单发 chat：无 Read 工具，自己把规格文档拼进去
@@ -65,10 +59,49 @@ export async function planSpec(
         : undefined,
     });
   }
-
   const plan = extractJson<PlanOut>(res.text);
-  if (!plan || !Array.isArray(plan.tasks)) {
-    throw new Error("planner 未返回可解析的任务列表");
+  return plan && Array.isArray(plan.tasks) ? plan : null;
+}
+
+export async function planSpec(
+  specDir: string,
+  config: Config,
+  opts: { repo: string; baseBranch?: string; verify?: string[] },
+): Promise<void> {
+  const tpl = await fs.readFile(path.join(__dirname, "..", "prompts", "planner.md"), "utf8");
+
+  // planner 降级链：主选(如 hilinkup:glm-5.2)失败/无输出 → 依次降级到更稳的 provider。
+  // 上游(HiLinkup)偶发 fetch failed/524 会让单一 planner 把整个 job 在 0% 打挂;有链兜底更稳。
+  // 可用 LOOP_PLANNER_FALLBACK(逗号分隔)覆盖默认 deepseek→claude。
+  const primary = config.providers.planner;
+  // 降级优先可靠性(claude 订阅最稳)再到 deepseek;主选一般是便宜的 glm,只在其挂时才用这链。
+  const fallbacks = (process.env.LOOP_PLANNER_FALLBACK ?? "claude,deepseek")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const chain = [primary, ...fallbacks.filter((f) => f !== primary)];
+
+  let plan: PlanOut | null = null;
+  let lastErr: Error | null = null;
+  for (let i = 0; i < chain.length; i++) {
+    const name = chain[i];
+    log.step(`拆解规格 ${specDir}（planner=${name}${i > 0 ? " · 降级" : ""}）`);
+    try {
+      plan = await callPlanner(name, tpl, specDir);
+      if (plan) {
+        if (i > 0) log.ok(`planner 主选失败,降级用 ${name} 成功`);
+        break;
+      }
+      log.warn(`planner ${name} 未返回可解析任务${i < chain.length - 1 ? "，尝试下一个" : ""}`);
+    } catch (e) {
+      lastErr = e as Error;
+      log.warn(
+        `planner ${name} 调用失败(${lastErr.message.slice(0, 80)})${i < chain.length - 1 ? "，尝试下一个" : ""}`,
+      );
+    }
+  }
+  if (!plan) {
+    throw new Error(`所有 planner 均失败(${chain.join("→")})：${lastErr ? lastErr.message : "无可解析任务列表"}`);
   }
   if (plan.skipped) log.warn(`跳过（未确认）：${plan.skipped}`);
 
