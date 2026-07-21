@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
 import os from "node:os";
-import { isRemoteRepo, ensureClone, pushRefs, isGitRepo } from "../src/git.js";
+import { isRemoteRepo, ensureClone, pushRefs, isGitRepo, assertAllowedPushHost } from "../src/git.js";
 
 const pexec = promisify(execFile);
 const g = (cwd: string, ...args: string[]) => pexec("git", ["-C", cwd, ...args]).then((r) => r.stdout.trim());
@@ -23,6 +23,19 @@ async function main() {
     if (got !== want) throw new Error(`isRemoteRepo(${url})=${got}, want ${want}`);
   }
   console.log("✓ isRemoteRepo 判定正确");
+
+  // assertAllowedPushHost：github 放行、其它 https host 抛错、本地/ssh 放行
+  assertAllowedPushHost("https://github.com/clestons/x.git"); // 不抛
+  assertAllowedPushHost("/local/path"); // 非 URL，不抛
+  assertAllowedPushHost("git@github.com:clestons/x.git"); // 非 https，不抛
+  let threw = false;
+  try {
+    assertAllowedPushHost("https://evil.example.com/x.git");
+  } catch {
+    threw = true;
+  }
+  if (!threw) throw new Error("assertAllowedPushHost 未挡住非白名单 host");
+  console.log("✓ assertAllowedPushHost host 白名单生效（挡住非 github https）");
 
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "loop-remote-test-"));
   const remote = path.join(tmp, "remote.git");
