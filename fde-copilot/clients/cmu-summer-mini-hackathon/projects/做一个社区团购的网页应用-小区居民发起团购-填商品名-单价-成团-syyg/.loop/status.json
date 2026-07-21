@@ -1,9 +1,0 @@
-{
-  "jobId": "做一个社区团购的网页应用-小区居民发起团购-填商品名-单价-成团-syyg",
-  "repo": "https://github.com/clestons/hack5-e2e-groupbuy.git",
-  "clientSlug": "cmu-summer-mini-hackathon",
-  "projectSlug": "做一个社区团购的网页应用-小区居民发起团购-填商品名-单价-成团-syyg",
-  "state": "failed",
-  "error": "hilinkup:glm-5.2 HTTP 524: <!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endi",
-  "updatedAt": "2026-07-21T06:24:26.893Z"
-}

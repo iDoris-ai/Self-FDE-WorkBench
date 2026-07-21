@@ -184,41 +184,54 @@ SPEC.md 结构(一个文档承载全部)：## 一句话定位 / ## 目标用户 
   const user = `## 客户背景\n${clientContext}\n\n## ${deliverableContext}\n\n## 最近对话\n${recentContext(history)}\n\n## 当前 SPEC.md 全文\n${specContent || "（尚为空，请写精简初稿）"}\n\n## 客户本轮新输入\n${input.customerInput}`;
 
   const timeoutMs = Number(process.env.CHAT_DIRECT_TIMEOUT_MS ?? 60_000);
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  let j: {
-    choices?: Array<{ message?: { content?: string } }>;
-    usage?: { prompt_tokens?: number; completion_tokens?: number };
-  };
-  try {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        max_tokens: Number(process.env.CHAT_DIRECT_MAX_TOKENS ?? 3000),
-      }),
-      signal: ctrl.signal,
-    });
-    if (!res.ok) throw new Error(`直连 chat ${model} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    j = (await res.json()) as typeof j;
-  } finally {
-    clearTimeout(timer);
+  // 快模型偶发不吐可解析 JSON（hack5 生产实测 ~2 次挂 1 次）→ 解析失败自动重试，
+  // 重试时追加「严格只输出 JSON」指令。仍失败才落兜底。
+  const maxAttempts = Number(process.env.CHAT_DIRECT_RETRIES ?? 2) + 1;
+  const usage: Usage = { ...ZERO_USAGE, turns: 0 };
+  let rawText = "";
+  let parsed: Partial<TurnResult> | null = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    let j: {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
+    try {
+      const res = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: system },
+            {
+              role: "user",
+              content:
+                attempt === 1
+                  ? user
+                  : `${user}\n\n（上一轮没有严格只输出一个 JSON 对象。请只输出一个 JSON 对象，第一个字符就是 {，含 reply、open_questions、readiness、spec_markdown 四个字段，不要任何解释或 markdown 围栏。）`,
+            },
+          ],
+          max_tokens: Number(process.env.CHAT_DIRECT_MAX_TOKENS ?? 3000),
+        }),
+        signal: ctrl.signal,
+      });
+      if (!res.ok) throw new Error(`直连 chat ${model} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      j = (await res.json()) as typeof j;
+    } finally {
+      clearTimeout(timer);
+    }
+    rawText = j.choices?.[0]?.message?.content ?? "";
+    usage.turns += 1;
+    usage.inputTokens += j.usage?.prompt_tokens ?? 0;
+    usage.outputTokens += j.usage?.completion_tokens ?? 0;
+    parsed = extractJsonObject<Partial<TurnResult>>(rawText);
+    if (parsed && typeof parsed.spec_markdown === "string" && parsed.reply) break;
+    parsed = null;
   }
 
-  const rawText = j.choices?.[0]?.message?.content ?? "";
-  const usage: Usage = {
-    ...ZERO_USAGE,
-    turns: 1,
-    inputTokens: j.usage?.prompt_tokens ?? 0,
-    outputTokens: j.usage?.completion_tokens ?? 0,
-  };
-
-  const parsed = extractJsonObject<Partial<TurnResult>>(rawText);
   if (!parsed || typeof parsed.spec_markdown !== "string" || !parsed.reply) {
     // 解析不出结构化结果：兜底，不写盘（避免把废话覆盖掉现有 SPEC.md）
     const fallback: TurnResult = {
