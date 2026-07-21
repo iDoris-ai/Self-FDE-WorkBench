@@ -81,6 +81,11 @@ export async function createTaskWorktree(
   return wtPath;
 }
 
+/** 清理该 repo 下已失效/遗留的 worktree 记录（超时/失败后的半成品清理，尽力而为）。 */
+export async function pruneWorktrees(repo: string): Promise<void> {
+  await tryGit(repo, ["worktree", "prune"]);
+}
+
 export async function removeWorktree(repo: string, wtPath: string): Promise<void> {
   const exists = await fs
     .access(wtPath)

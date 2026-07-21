@@ -71,6 +71,8 @@ export interface RunTaskResult {
 /** 阶段回调：供 HTTP 编排层（server.ts）把细粒度状态映射到 /status 契约 */
 export interface RunTaskHooks {
   onPhase?: (phase: "coding" | "reviewing") => void;
+  /** 外部取消信号（job 级超时）：abort 时终止编码/评审、kill 子进程 */
+  signal?: AbortSignal;
 }
 
 /**
@@ -125,6 +127,7 @@ export async function runTask(
 
   try {
     for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
+      if (hooks?.signal?.aborted) throw new Error("job 超时，取消任务");
       task.attempts = attempt;
       hooks?.onPhase?.("coding");
       log.info(`  尝试 ${attempt}/${config.maxAttempts} · 编码中（${coder.name}）`);
@@ -135,6 +138,7 @@ export async function runTask(
       await runAgent(workerPrompt, {
         cwd: wt,
         provider: coder,
+        signal: hooks?.signal,
         mockHandler: coder.isMock ? mockCoder(task) : undefined,
       });
 
@@ -179,6 +183,7 @@ export async function runTask(
           await runAgent(`${reviewPrompt}\n\n${reviewDiff}`, {
             cwd: wt,
             provider: rp.provider,
+            signal: hooks?.signal,
             // reviewer 只读：只给检索工具，并硬禁写/命令（deny 优先于 skip-permissions）
             allowedTools: ["Read", "Grep", "Glob"],
             disallowedTools: ["Bash", "Write", "Edit", "MultiEdit", "NotebookEdit"],

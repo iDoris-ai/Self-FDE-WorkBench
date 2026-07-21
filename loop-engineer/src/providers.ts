@@ -12,6 +12,8 @@ export interface RunAgentOpts {
   disallowedTools?: string[];
   maxTurns?: number;
   timeoutMs?: number;
+  /** 外部取消信号（job 级超时用）：abort 时 kill 子进程并 reject */
+  signal?: AbortSignal;
   /** provider.isMock 时用它替代真实调用 */
   mockHandler?: (prompt: string, cwd: string) => Promise<string>;
 }
@@ -83,6 +85,8 @@ export function sandboxEnv(
 export async function runAgent(prompt: string, opts: RunAgentOpts): Promise<RunAgentResult> {
   const { provider } = opts;
 
+  if (opts.signal?.aborted) throw new Error(`供应商 ${provider.name} 已取消（超时）`);
+
   if (provider.isMock) {
     const text = opts.mockHandler
       ? await opts.mockHandler(prompt, opts.cwd)
@@ -121,15 +125,25 @@ export async function runAgent(prompt: string, opts: RunAgentOpts): Promise<RunA
       child.kill("SIGKILL");
       reject(new Error(`供应商 ${provider.name} 超时（${timeoutMs}ms）`));
     }, timeoutMs);
+    // 外部取消（job 级超时）：kill 子进程并 reject
+    const onAbort = () => {
+      child.kill("SIGKILL");
+      reject(new Error(`供应商 ${provider.name} 被取消（job 超时）`));
+    };
+    if (opts.signal) opts.signal.addEventListener("abort", onAbort, { once: true });
+    const cleanup = () => {
+      clearTimeout(timer);
+      if (opts.signal) opts.signal.removeEventListener("abort", onAbort);
+    };
 
     child.stdout.on("data", (d) => (stdout += d.toString()));
     child.stderr.on("data", (d) => (stderr += d.toString()));
     child.on("error", (e) => {
-      clearTimeout(timer);
+      cleanup();
       reject(new Error(`spawn claude 失败：${e.message}`));
     });
     child.on("close", (code) => {
-      clearTimeout(timer);
+      cleanup();
       if (code !== 0) {
         reject(new Error(`供应商 ${provider.name} 退出码 ${code}：${stderr.slice(0, 500)}`));
         return;

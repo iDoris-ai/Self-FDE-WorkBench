@@ -26,7 +26,8 @@ import { loadConfig, loadEnv, PROJECT_ROOT } from "./config.js";
 import { loadJob, nextTask, hasPending, saveJob, scanJobs } from "./jobs.js";
 import { planSpec } from "./planner.js";
 import { runTask } from "./orchestrator.js";
-import { isGitRepo } from "./git.js";
+import { isGitRepo, pruneWorktrees } from "./git.js";
+import { runWithTimeout } from "./timeout.js";
 import { checkWorkbenchToken } from "./auth.js";
 import { emitLifecycle } from "./lifecycle.js";
 import { createPool } from "./pool.js";
@@ -85,19 +86,39 @@ function enqueue(jobId: string): void {
     id: jobId,
     key: rec.repo,
     run: async () => {
-      try {
-        await processJob(jobId);
-      } catch (e) {
-        const r = registry.get(jobId);
-        if (r) setState(r, "failed", { error: (e as Error).message });
-        log.err(`job ${jobId} 处理异常：${(e as Error).message}`);
+      // Q2:job 级超时。超时 → abort（kill 子进程 + runTask.finally 清 worktree）→ 标 failed。
+      const r = await runWithTimeout((signal) => processJob(jobId, signal), jobTimeoutMs());
+      const job = registry.get(jobId);
+      if (r.timedOut) {
+        if (job) setState(job, "failed", { error: `job 超时（${jobTimeoutMs()}ms），已中止并清理` });
+        log.err(`job ${jobId} 超时中止`);
+        await pruneRepoWorktrees(job?.repo);
+      } else if (r.error) {
+        if (job) setState(job, "failed", { error: (r.error as Error).message });
+        log.err(`job ${jobId} 处理异常：${(r.error as Error).message}`);
       }
     },
   });
 }
 
+/** job 级超时上限（默认 30min，契约 v2 · Q2 建议值）。 */
+function jobTimeoutMs(): number {
+  const n = Number(process.env.LOOP_JOB_TIMEOUT_MS ?? 30 * 60 * 1000);
+  return Number.isFinite(n) && n > 0 ? n : 30 * 60 * 1000;
+}
+
+/** 超时/失败后清理该 repo 遗留的半成品 worktree（尽力而为）。 */
+async function pruneRepoWorktrees(repo?: string): Promise<void> {
+  if (!repo) return;
+  try {
+    await pruneWorktrees(repo);
+  } catch (e) {
+    log.warn(`worktree 清理失败：${(e as Error).message}`);
+  }
+}
+
 /** 跑一个 job 的全部待办任务到收工，实时更新 registry 状态。 */
-async function processJob(jobId: string): Promise<void> {
+async function processJob(jobId: string, signal?: AbortSignal): Promise<void> {
   const rec = registry.get(jobId);
   if (!rec) return;
   const job = await loadJob(path.join(rec.specDir, "loop.json"));
@@ -119,6 +140,7 @@ async function processJob(jobId: string): Promise<void> {
     try {
       const result = await runTask(job, task, config, {
         onPhase: (phase) => setState(rec, phase),
+        signal,
       });
       if (result.prUrl) rec.prUrl = result.prUrl;
     } catch (e) {
@@ -126,6 +148,7 @@ async function processJob(jobId: string): Promise<void> {
       task.lastResult = (e as Error).message;
       await saveJob(job);
       log.err(`任务 ${task.id} 异常：${(e as Error).message}`);
+      if (signal?.aborted) break; // job 超时 → 不再取下一个任务
     }
   }
 
