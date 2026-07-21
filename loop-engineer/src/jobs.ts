@@ -3,6 +3,10 @@ import path from "node:path";
 import { JobManifest } from "./types.js";
 import type { LoadedJob, Task } from "./types.js";
 import { PROJECT_ROOT } from "./config.js";
+import { isRemoteRepo } from "./git.js";
+
+/** 远程仓 clone 到 job 目录下的这个子目录（编码/回推都在这份本地 clone 上做）。 */
+const LOCAL_CLONE_DIR = ".loop-repo";
 
 const MANIFEST = "loop.json";
 
@@ -45,10 +49,21 @@ export async function loadJob(manifestPath: string): Promise<LoadedJob | null> {
     const raw = JSON.parse(await fs.readFile(manifestPath, "utf8"));
     const manifest = JobManifest.parse(raw);
     const jobDir = path.dirname(manifestPath);
-    const repoPath = path.isAbsolute(manifest.repo)
-      ? manifest.repo
-      : path.resolve(jobDir, manifest.repo);
-    return { manifest, jobDir, manifestPath, repoPath };
+    // 远程 URL：不能当本地路径 path.resolve（会拼成 .../https:/github.com/... 的假路径），
+    // 而是指向 job 目录下的本地 clone（processJob 会先 ensureClone 到这里再编码）。
+    const remote = isRemoteRepo(manifest.repo);
+    const repoPath = remote
+      ? path.join(jobDir, LOCAL_CLONE_DIR)
+      : path.isAbsolute(manifest.repo)
+        ? manifest.repo
+        : path.resolve(jobDir, manifest.repo);
+    return {
+      manifest,
+      jobDir,
+      manifestPath,
+      repoPath,
+      remoteUrl: remote ? manifest.repo : undefined,
+    };
   } catch {
     return null;
   }

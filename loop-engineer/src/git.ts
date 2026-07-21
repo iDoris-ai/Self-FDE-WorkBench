@@ -6,10 +6,14 @@ import { log } from "./log.js";
 
 const pexec = promisify(execFile);
 
+// git 子进程一律非交互：缺凭据/需确认时立即失败，绝不阻塞在终端提示上（clone/fetch/push 都走这条）。
+const GIT_EXEC_OPTS = {
+  maxBuffer: 16 * 1024 * 1024,
+  env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+} as const;
+
 async function git(repo: string, args: string[]): Promise<string> {
-  const { stdout } = await pexec("git", ["-C", repo, ...args], {
-    maxBuffer: 16 * 1024 * 1024,
-  });
+  const { stdout } = await pexec("git", ["-C", repo, ...args], GIT_EXEC_OPTS);
   return stdout.trim();
 }
 
@@ -32,6 +36,75 @@ function wtRoot(repo: string): string {
 
 export async function isGitRepo(repo: string): Promise<boolean> {
   return (await tryGit(repo, ["rev-parse", "--is-inside-work-tree"])) === "true";
+}
+
+/** 远程 repo（需 clone）：http(s)/git/ssh scheme，或 scp-like `git@host:path`。本地路径返回 false。 */
+export function isRemoteRepo(repo: string): boolean {
+  return /^(https?|ssh|git):\/\//i.test(repo) || /^[^\s/]+@[^\s/]+:/.test(repo);
+}
+
+/**
+ * 把 push token 临时注入 https 远程 URL（仅用于本次 clone/fetch/push 的命令行，绝不写回
+ * .git/config —— clone 后我们会把 origin 改回干净 URL）。非 https 或无 token 时原样返回。
+ */
+function withToken(remoteUrl: string, token?: string): string {
+  if (!token) return remoteUrl;
+  const m = remoteUrl.match(/^https:\/\/(.+)$/i);
+  if (!m) return remoteUrl;
+  const rest = m[1].replace(/^[^@/]+(:[^@/]*)?@/, ""); // 去掉已有的 user[:pass]@
+  return `https://x-access-token:${token}@${rest}`;
+}
+
+/**
+ * 确保远程 repo 有一份本地 clone（W2/W4 补漏：loop 自己 clone 远程仓再编码/回推）。
+ * - 已是 git 仓：best-effort fetch base（不 reset，保住已有 loop/integration 进度）。
+ * - 路径存在但非 git 仓（残留半成品）：清掉重 clone。
+ * - 缺失：clone。token 只临时用于拉取，clone 后 origin 改回干净 URL，不落盘凭据。
+ */
+export async function ensureClone(
+  remoteUrl: string,
+  localPath: string,
+  baseBranch: string,
+  token?: string,
+): Promise<void> {
+  if (await isGitRepo(localPath)) {
+    await tryGit(localPath, ["fetch", withToken(remoteUrl, token), baseBranch]);
+    return;
+  }
+  const exists = await fs
+    .access(localPath)
+    .then(() => true)
+    .catch(() => false);
+  if (exists) await fs.rm(localPath, { recursive: true, force: true });
+  await fs.mkdir(path.dirname(localPath), { recursive: true });
+  await pexec("git", ["clone", withToken(remoteUrl, token), localPath], GIT_EXEC_OPTS);
+  // 干净化：不把带 token 的 URL 留在 .git/config
+  await tryGit(localPath, ["remote", "set-url", "origin", remoteUrl]);
+}
+
+/**
+ * 把本地分支 push 回远程若干 refspec（token 临时注入命令行，不持久化）。
+ * 逐条独立 push：某条失败（如 main 非 fast-forward）不影响其它条落地。
+ */
+export async function pushRefs(
+  repo: string,
+  remoteUrl: string,
+  refspecs: string[],
+  token?: string,
+): Promise<{ pushed: boolean; detail: string }> {
+  const url = withToken(remoteUrl, token);
+  const okRefs: string[] = [];
+  const failRefs: string[] = [];
+  for (const spec of refspecs) {
+    const r = await tryGit(repo, ["push", url, spec]);
+    if (r === null) failRefs.push(spec);
+    else okRefs.push(spec);
+  }
+  if (failRefs.length === 0) return { pushed: true, detail: `已 push：${okRefs.join(" ")}` };
+  return {
+    pushed: okRefs.length > 0,
+    detail: `push 部分/全部失败 —— 成功[${okRefs.join(" ") || "无"}] 失败[${failRefs.join(" ")}]`,
+  };
 }
 
 async function branchExists(repo: string, branch: string): Promise<boolean> {

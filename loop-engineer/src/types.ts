@@ -88,5 +88,7 @@ export interface LoadedJob {
   manifest: JobManifest;
   jobDir: string; // loop.json 所在目录
   manifestPath: string;
-  repoPath: string; // 解析后的绝对 repo 路径
+  repoPath: string; // 解析后的绝对 repo 路径（远程仓时 = job 目录下的本地 clone 路径）
+  /** manifest.repo 是远程 URL 时的原始远程地址（本地路径仓为 undefined）。 */
+  remoteUrl?: string;
 }

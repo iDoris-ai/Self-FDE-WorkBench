@@ -26,7 +26,7 @@ import { loadConfig, loadEnv, PROJECT_ROOT } from "./config.js";
 import { loadJob, nextTask, hasPending, saveJob, scanJobs } from "./jobs.js";
 import { planSpec } from "./planner.js";
 import { runTask } from "./orchestrator.js";
-import { isGitRepo, pruneWorktrees } from "./git.js";
+import { isGitRepo, pruneWorktrees, isRemoteRepo, ensureClone, pushRefs } from "./git.js";
 import { runWithTimeout } from "./timeout.js";
 import { writeStatus, readStatus } from "./persist.js";
 import { checkWorkbenchToken } from "./auth.js";
@@ -135,6 +135,15 @@ function enqueue(jobId: string): void {
   });
 }
 
+/**
+ * loop 回推远程仓用的 push token。B2 边界：只在编排进程（server）里读，用于构造带凭证的
+ * 临时 push/clone URL；sandboxEnv() 白名单不含这些键，coder/reviewer 沙箱读不到。
+ * 凭据留在本机 loop-engineer/.env，绝不经 hack5 过线（契约不变，hack5 零改动）。
+ */
+function loopPushToken(): string | undefined {
+  return process.env.LOOP_GIT_PUSH_TOKEN || process.env.GITHUB_BOT_TOKEN || undefined;
+}
+
 /** job 级超时上限（默认 30min，契约 v2 · Q2 建议值）。 */
 function jobTimeoutMs(): number {
   const n = Number(process.env.LOOP_JOB_TIMEOUT_MS ?? 30 * 60 * 1000);
@@ -159,6 +168,16 @@ async function processJob(jobId: string, signal?: AbortSignal): Promise<void> {
   if (!job) {
     setState(rec, "failed", { error: "loop.json 不存在或不可解析" });
     return;
+  }
+  // W2/W4 补漏：repo 是远程 URL 时，loop 先把它 clone 到本地 job 目录，再编码/回推。
+  // （之前 loadJob 会把 URL 当本地路径拼歪 → isGitRepo=false → job 秒挂。Bug1。）
+  if (job.remoteUrl) {
+    try {
+      await ensureClone(job.remoteUrl, job.repoPath, job.manifest.baseBranch, loopPushToken());
+    } catch (e) {
+      setState(rec, "failed", { error: `clone 远程仓失败（${job.remoteUrl}）：${(e as Error).message}` });
+      return;
+    }
   }
   if (!(await isGitRepo(job.repoPath))) {
     setState(rec, "failed", { error: `目标 repo 不是 git 仓库：${job.repoPath}` });
@@ -192,6 +211,19 @@ async function processJob(jobId: string, signal?: AbortSignal): Promise<void> {
       error: tasks.filter((t) => t.status === "failed").map((t) => `${t.id}: ${t.lastResult ?? ""}`).join("; "),
     });
   } else {
+    // W4：远程仓 → 把编码成果回推远程（loop/integration 分支保底 + fast-forward base 便于部署）。
+    // 逐条独立 push：base 若非 FF 失败也不影响 integration 分支落地。凭据来自本机 token，
+    // 沙箱不可见。push 失败不改 job 状态（尽力而为），只告警。
+    if (job.remoteUrl) {
+      const integ = job.manifest.integrationBranch;
+      const r = await pushRefs(
+        job.repoPath,
+        job.remoteUrl,
+        [`${integ}:refs/heads/${integ}`, `${integ}:${job.manifest.baseBranch}`],
+        loopPushToken(),
+      );
+      (r.pushed ? log.ok : log.warn)(`回推远程 ${job.remoteUrl}：${r.detail}`);
+    }
     setState(rec, "done");
     // W4：coding 完成 → 广播 coding_done。部署归 hack5(只回调),此处不自部署。
     // sink 失败不影响 job 状态(emitLifecycle 内部各 sink 独立 try/catch)。
@@ -260,6 +292,14 @@ function specDirFor(clientSlug: string, projectSlug: string): string {
  */
 function assertSafeRepo(repo: string): void {
   if (repo.includes("\0")) throw new Error(`非法 repo：${repo}`);
+  // 远程仓：只接受 https://github.com/（挡任意 scheme / SSRF）。clone 落 job 本地目录，
+  // 不涉本机路径穿越，故跳过下面的本地路径白名单校验。
+  if (isRemoteRepo(repo)) {
+    if (!/^https:\/\/github\.com\/[^/]+\/[^/]+/i.test(repo)) {
+      throw new Error(`远程 repo 仅支持 https://github.com/<owner>/<repo>：${repo}`);
+    }
+    return;
+  }
   const root = process.env.LOOP_REPO_ROOT;
   if (root) {
     const rootResolved = path.resolve(root);
