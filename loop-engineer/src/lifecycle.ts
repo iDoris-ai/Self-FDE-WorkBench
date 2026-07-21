@@ -21,6 +21,11 @@ export interface LifecycleEvent {
   appUrl?: string;
   /** failed 事件的错误摘要（供 hack5 展示/记录；其它事件不带）。 */
   error?: string;
+  /** CC-54：本 job 实际 token 成本(USD,按 hack5 权威价表逐模型算)。hack5 按 ceil(costUsd×100) 扣积分。 */
+  costUsd?: number;
+  /** CC-54：token 明细(便于 hack5 对账;可选)。 */
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 export type LifecycleSink = (evt: LifecycleEvent) => void | Promise<void>;

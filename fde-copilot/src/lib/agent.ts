@@ -159,6 +159,25 @@ export interface RunTurnOutput {
   usage: Usage;
 }
 
+/**
+ * CC-54：chat 直连模型价表($/1M token,[输入, 输出]),与 hack5 权威 model-prices.csv +
+ * loop-engineer usage.ts 同源。用于算每轮 chat 的实际成本回传给 hack5 积分扣费。
+ */
+const CHAT_PRICE: Record<string, [number, number]> = {
+  "MiniMax-M2": [0.31, 1.24],
+  "MiniMax-M2.1": [0.31, 1.24],
+  "MiniMax-M2.1-highspeed": [0.62, 2.47],
+  "MiniMax-M2.5": [0.31, 1.24],
+  "MiniMax-M2.5-highspeed": [0.62, 2.47],
+  "MiniMax-M2.7": [0.31, 1.24],
+  "MiniMax-M2.7-highspeed": [0.62, 2.47],
+  "minimax-m3": [0.3, 1.2],
+};
+function estimateChatCost(model: string, inTok: number, outTok: number): number {
+  const p = CHAT_PRICE[model];
+  return p ? (inTok * p[0] + outTok * p[1]) / 1_000_000 : 0;
+}
+
 /** 从模型输出里稳健抽第一个 JSON 对象（容忍 ```json 包裹与前后废话）。 */
 function extractJsonObject<T>(text: string): T | null {
   const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -262,6 +281,9 @@ SPEC.md 结构(一个文档承载全部)：## 一句话定位 / ## 目标用户 
     if (parsed && typeof parsed.spec_markdown === "string" && parsed.reply) break;
     parsed = null;
   }
+
+  // CC-54：按价表算本轮 chat 实际成本(含重试的累计 token),回传供 hack5 积分扣费
+  usage.costUsd = estimateChatCost(model, usage.inputTokens, usage.outputTokens);
 
   if (!parsed || typeof parsed.spec_markdown !== "string" || !parsed.reply) {
     // 解析不出结构化结果：兜底，不写盘（避免把废话覆盖掉现有 SPEC.md）
