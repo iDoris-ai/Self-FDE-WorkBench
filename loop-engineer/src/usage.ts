@@ -38,12 +38,14 @@ export function add(a: Usage, b: Usage): Usage {
 // —— 成本估算价表（USD / 1M token，[输入, 输出]）——
 // 粗估，可按实际账单调整；claude 直接用 SDK 的 total_cost_usd 不走这里。
 const PRICE: Record<string, [number, number]> = {
+  "glm-5.2": [1.4, 4.4],
   "glm-5.1": [1.4, 4.4],
   "glm-5": [1.0, 3.0],
   "kimi-k2.7-code": [0.6, 2.5],
   "kimi-k2.5": [0.6, 2.5],
   "deepseek-v4-pro": [0.5, 2.0],
   "deepseek-v4-flash": [0.1, 0.4],
+  "MiniMax-M2.1-highspeed": [0.3, 1.2],
 };
 
 export function estimateCost(model: string | undefined, inTok: number, outTok: number): number {
