@@ -3,6 +3,7 @@ import { readProjectState, writeProjectState, appendConversation } from "@/lib/c
 import { runTurn } from "@/lib/agent";
 import { commitProject, type CommitResult } from "@/lib/git";
 import { scopedAuthError, originError } from "@/lib/auth";
+import { normLang } from "@/lib/agent";
 import { addUsage, ZERO_USAGE } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -15,11 +16,12 @@ export async function POST(req: Request) {
   const oe = originError(req);
   if (oe) return oe;
 
-  const { clientSlug, projectSlug, input, attachments } = (await req.json()) as {
+  const { clientSlug, projectSlug, input, attachments, lang } = (await req.json()) as {
     clientSlug?: string;
     projectSlug?: string;
     input?: string;
     attachments?: string[];
+    lang?: string; // CC-53：zh | en | th，缺省 zh；非法值归一到 zh
   };
 
   if (!clientSlug || !projectSlug || !input || !input.trim()) {
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
 
   let out;
   try {
-    out = await runTurn({ clientSlug, projectSlug, customerInput: input.trim(), attachments });
+    out = await runTurn({ clientSlug, projectSlug, customerInput: input.trim(), attachments, lang: normLang(lang) });
   } catch (e) {
     return NextResponse.json({ error: `agent 执行失败：${(e as Error).message}` }, { status: 500 });
   }

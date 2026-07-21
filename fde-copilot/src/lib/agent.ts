@@ -116,11 +116,38 @@ function recentContext(history: ConversationEntry[], take = 6): string {
     .join("\n");
 }
 
+/** 内部沟通语言（CC-53）：AI 面向用户的文字用此语言。缺省 zh = 现状，向后兼容。 */
+export type ChatLang = "zh" | "en" | "th";
+
+export function normLang(v: unknown): ChatLang {
+  return v === "en" || v === "th" ? v : "zh";
+}
+
+function langName(lang: ChatLang): string {
+  return lang === "en" ? "English" : lang === "th" ? "ภาษาไทย (Thai)" : "中文";
+}
+
+/**
+ * 输出语言指令（CC-53）：只约束**面向用户的文字**（reply / open_questions / readiness.missing /
+ * SPEC.md 里给人读的散文）用指定语言；**结构化字段不变**（JSON 键名、slug、章节标记、readiness 数值）。
+ * zh 时与现状一致。措辞刻意强硬 + 要求「无视输入/上下文语言」，因为快模型易被满屏中文带偏。
+ */
+function langDirective(lang: ChatLang): string {
+  if (lang === "zh") {
+    return "【输出语言=中文】面向用户的所有文字（reply、open_questions 的问题、readiness.missing、SPEC.md 中给人读的定位/功能描述等）全程用中文。";
+  }
+  const name = langName(lang);
+  const native = lang === "en" ? "in English" : "เป็นภาษาไทย"; // 用目标语言自身再钉一遍
+  return `⚠️ CRITICAL — OUTPUT LANGUAGE = ${name}. You MUST write ALL user-facing text ${native}: the "reply" string, every open_questions question and why, all readiness.missing items, and the human-readable prose inside SPEC.md (positioning, feature descriptions, notes). This is MANDATORY and OVERRIDES everything else — write ${native} EVEN THOUGH the user's message, the existing SPEC.md, and these very instructions are in Chinese. Do NOT reply in Chinese. ONLY the machine/structured parts stay unchanged: JSON field NAMES (keys), slugs, markdown "##" heading markers, and numeric readiness values. Never translate JSON keys.`;
+}
+
 export interface RunTurnInput {
   clientSlug: string;
   projectSlug: string;
   customerInput: string;
   attachments?: string[];
+  /** 内部沟通语言（CC-53）：zh | en | th，缺省 zh。 */
+  lang?: ChatLang;
 }
 
 export interface RunTurnOutput {
@@ -169,19 +196,23 @@ async function runTurnDirect(
     ? `交付物：${project.deliverable.name}（类型：${project.deliverable.type}）`
     : "（无交付物信息）";
 
-  const system = `你是快速需求 intake Copilot。把客户零散口语化的诉求，一点点并进一份精简、可增量的规格 SPEC.md，让下游一个「接触不到客户本人」的自动编码 loop 仅凭它就能建出 MVP。这是交互式对话,客户在等你的下一个问题,回答要快、准、克制、全程中文。
+  const lang = normLang(input.lang);
+  const system = `${langDirective(lang)}
+
+你是快速需求 intake Copilot。把客户零散口语化的诉求，一点点并进一份精简、可增量的规格 SPEC.md，让下游一个「接触不到客户本人」的自动编码 loop 仅凭它就能建出 MVP。这是交互式对话,客户在等你的下一个问题,回答要快、准、克制。
 
 SPEC.md 结构(一个文档承载全部)：## 一句话定位 / ## 目标用户 / ## 核心功能(每个一行+一句验收标准) / ## 范围(范围内、范围外) / ## 技术方向(可选,AI 假设标注「【假设·待确认】」) / ## 待确认 缺口(必须客户回答的问题、技术假设、已知风险)。
 
 本轮:在「当前 SPEC.md」基础上把客户新输入做增量修订(改相关小节,不整篇重写;空则写精简初稿)。不做联网调研,凭知识给合理技术方向并标「【假设·待确认】」。评估 readiness(0-100,loop_ready=够建一个可跑 MVP;不追求面面俱到)。
 
 **只输出一个 JSON 对象**(第一个字符就是 {,不要任何解释文字或 markdown 代码围栏),字段:
-- reply: string —— 给客户看的简短中文回复(一句话说本轮并进了什么 + 抛最关键的一个问题)
+- reply: string —— 给客户看的简短回复(一句话说本轮并进了什么 + 抛最关键的一个问题)
 - open_questions: array —— [{id:string, question:string, why:string}],必须客户回答的问题
 - readiness: object —— {score:int(0-100), loop_ready:bool, missing:string[]}
 - spec_markdown: string —— 更新后的完整 SPEC.md 全文`;
 
-  const user = `## 客户背景\n${clientContext}\n\n## ${deliverableContext}\n\n## 最近对话\n${recentContext(history)}\n\n## 当前 SPEC.md 全文\n${specContent || "（尚为空，请写精简初稿）"}\n\n## 客户本轮新输入\n${input.customerInput}`;
+  const langReminder = lang === "zh" ? "" : `\n\n${langDirective(lang)}`;
+  const user = `## 客户背景\n${clientContext}\n\n## ${deliverableContext}\n\n## 最近对话\n${recentContext(history)}\n\n## 当前 SPEC.md 全文\n${specContent || "（尚为空，请写精简初稿）"}\n\n## 客户本轮新输入\n${input.customerInput}${langReminder}`;
 
   const timeoutMs = Number(process.env.CHAT_DIRECT_TIMEOUT_MS ?? 60_000);
   // 快模型偶发不吐可解析 JSON（hack5 生产实测 ~2 次挂 1 次）→ 解析失败自动重试，
@@ -273,7 +304,8 @@ export async function runTurn(input: RunTurnInput): Promise<RunTurnOutput> {
     return runTurnDirect(input, { dir, history, client, project });
   }
 
-  const system = await loadSystemPrompt();
+  // CC-53：把输出语言指令并进 system（缺省 zh 与原提示一致）。
+  const system = (await loadSystemPrompt()) + `\n\n${langDirective(normLang(input.lang))}`;
 
   const sink: { value: TurnResult | null } = { value: null };
   const submitServer = createSdkMcpServer({
