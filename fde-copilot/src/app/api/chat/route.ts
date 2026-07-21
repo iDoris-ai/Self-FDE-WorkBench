@@ -82,5 +82,15 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({ result: out.result, usedFallback: out.usedFallback, commit });
+  return NextResponse.json({
+    result: out.result,
+    usedFallback: out.usedFallback,
+    commit,
+    // CC-54：回传本轮 chat 实际 token 成本(按价表算)供 hack5 积分扣费
+    usage: {
+      costUsd: out.usage.costUsd,
+      inputTokens: out.usage.inputTokens,
+      outputTokens: out.usage.outputTokens,
+    },
+  });
 }

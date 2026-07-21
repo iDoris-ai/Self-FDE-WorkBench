@@ -18,6 +18,8 @@ import {
 import { runGate } from "./gate.js";
 import { saveJob, appendJournal } from "./jobs.js";
 import { reportBlocked } from "./feedback.js";
+import { ZERO, add } from "./usage.js";
+import type { Usage } from "./usage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROMPTS = path.resolve(__dirname, "..", "prompts");
@@ -66,6 +68,8 @@ export interface RunTaskResult {
   detail: string;
   /** 尽力开成的 PR 链接（无 remote/gh 时为空） */
   prUrl?: string;
+  /** 本任务累计用量（coder + 各 reviewer + 返工，CC-54 per-job 成本汇总用）。 */
+  usage: Usage;
 }
 
 /** 阶段回调：供 HTTP 编排层（server.ts）把细粒度状态映射到 /status 契约 */
@@ -87,6 +91,7 @@ export async function runTask(
 ): Promise<RunTaskResult> {
   const repo = job.repoPath;
   const integration = job.manifest.integrationBranch;
+  let taskUsage: Usage = { ...ZERO }; // CC-54：本任务累计用量（coder + reviewer + 返工）
   // per-task 模型路由：任务可覆盖全局默认（难任务派更强的模型）
   const coder = resolveProvider(task.coderProvider ?? config.providers.coder);
   if (coder.kind === "openai-chat") {
@@ -95,7 +100,7 @@ export async function runTask(
     task.lastResult = `coder 不能用 OpenAI 网关(${coder.name})：agentic 编码需 Anthropic 端点(claude/glm/kimi/deepseek 直连)或 codex`;
     log.err(`  ${task.lastResult}`);
     await saveJob(job);
-    return { ok: false, status: "failed", detail: task.lastResult };
+    return { ok: false, status: "failed", detail: task.lastResult, usage: taskUsage };
   }
   const innerReviewer = resolveProvider(task.reviewerProvider ?? config.providers.reviewer);
   // 评审面板：内层（快、便宜）+ 可选外层（如 deepseek，独立第二意见），双过才 merge
@@ -135,12 +140,13 @@ export async function runTask(
       const workerPrompt = workerTpl
         .replace("{{TASK_BLOCK}}", tb)
         .replace("{{FEEDBACK_BLOCK}}", feedback || "（首轮，无返工反馈）");
-      await runAgent(workerPrompt, {
+      const coderRes = await runAgent(workerPrompt, {
         cwd: wt,
         provider: coder,
         signal: hooks?.signal,
         mockHandler: coder.isMock ? mockCoder(task) : undefined,
       });
+      taskUsage = add(taskUsage, coderRes.usage);
 
       const committed = await commitAll(wt, `feat(${task.id}): ${task.title} [attempt ${attempt}]`);
       if (!committed && !(await hasChanges(wt))) {
@@ -168,28 +174,28 @@ export async function runTask(
       const reviewPrompt = reviewerTpl.replace("{{TASK_BLOCK}}", tb);
       // 评审 diff 预先算好，喂给两类 reviewer（agentic 也不必自己跑 git，从而可收成只读）
       const reviewDiff = await diffAgainst(wt, integration);
-      // 单次评审调用（agentic 或 chat）
-      const callReviewer = async (rp: (typeof reviewers)[number]): Promise<string> => {
+      // 单次评审调用（agentic 或 chat）；返回文本 + 用量（CC-54 成本汇总）
+      const callReviewer = async (
+        rp: (typeof reviewers)[number],
+      ): Promise<{ text: string; usage: Usage }> => {
         if (rp.provider.kind === "openai-chat") {
-          return (
-            await runChat(
-              "你是严格、对抗性的代码评审员。直接输出一个 JSON 对象，第一个字符就是 {，不要任何解释文字或 markdown。",
-              `${reviewPrompt}\n\n${reviewDiff}`,
-              { provider: rp.provider },
-            )
-          ).text;
+          const r = await runChat(
+            "你是严格、对抗性的代码评审员。直接输出一个 JSON 对象，第一个字符就是 {，不要任何解释文字或 markdown。",
+            `${reviewPrompt}\n\n${reviewDiff}`,
+            { provider: rp.provider },
+          );
+          return { text: r.text, usage: r.usage };
         }
-        return (
-          await runAgent(`${reviewPrompt}\n\n${reviewDiff}`, {
-            cwd: wt,
-            provider: rp.provider,
-            signal: hooks?.signal,
-            // reviewer 只读：只给检索工具，并硬禁写/命令（deny 优先于 skip-permissions）
-            allowedTools: ["Read", "Grep", "Glob"],
-            disallowedTools: ["Bash", "Write", "Edit", "MultiEdit", "NotebookEdit"],
-            mockHandler: rp.provider.isMock ? mockReviewer(task) : undefined,
-          })
-        ).text;
+        const r = await runAgent(`${reviewPrompt}\n\n${reviewDiff}`, {
+          cwd: wt,
+          provider: rp.provider,
+          signal: hooks?.signal,
+          // reviewer 只读：只给检索工具，并硬禁写/命令（deny 优先于 skip-permissions）
+          allowedTools: ["Read", "Grep", "Glob"],
+          disallowedTools: ["Bash", "Write", "Edit", "MultiEdit", "NotebookEdit"],
+          mockHandler: rp.provider.isMock ? mockReviewer(task) : undefined,
+        });
+        return { text: r.text, usage: r.usage };
       };
 
       let panelPassed = true;
@@ -200,7 +206,9 @@ export async function runTask(
         let reviewErr: Error | null = null;
         for (let ri = 1; ri <= 2 && !verdict; ri++) {
           try {
-            verdict = extractJson<ReviewVerdict>(await callReviewer(r));
+            const rev = await callReviewer(r);
+            taskUsage = add(taskUsage, rev.usage);
+            verdict = extractJson<ReviewVerdict>(rev.text);
           } catch (e) {
             // 评审模型瞬时故障（如 HiLinkup 524 / 网络）——不是代码问题，别重试解析
             if (hooks?.signal?.aborted) throw e; // job 超时的 abort 要如实失败，不放行
@@ -273,5 +281,5 @@ export async function runTask(
     await saveJob(job);
   }
 
-  return { ok: success, status: task.status, detail: lastDetail, prUrl };
+  return { ok: success, status: task.status, detail: lastDetail, prUrl, usage: taskUsage };
 }

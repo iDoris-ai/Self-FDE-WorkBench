@@ -6,6 +6,8 @@ import { resolveProvider } from "./config.js";
 import { runAgent, runChat, extractJson } from "./providers.js";
 import { JobManifest } from "./types.js";
 import type { Config } from "./types.js";
+import { ZERO, add } from "./usage.js";
+import type { Usage } from "./usage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -41,8 +43,12 @@ interface PlanOut {
  * 读 specDir 下的 loop-ready 规格，用 planner 供应商拆成任务，写/并入 specDir/loop.json。
  * 已存在的同 id 任务保留其 status（不重置进度）。
  */
-/** 用一个 provider 跑一次拆规格,返回可解析的 PlanOut 或 null(无可解析任务)。调用失败会 throw。 */
-async function callPlanner(providerName: string, tpl: string, specDir: string): Promise<PlanOut | null> {
+/** 用一个 provider 跑一次拆规格,返回 {可解析的 PlanOut 或 null, 本次用量}。调用失败会 throw。 */
+async function callPlanner(
+  providerName: string,
+  tpl: string,
+  specDir: string,
+): Promise<{ plan: PlanOut | null; usage: Usage }> {
   const planner = resolveProvider(providerName);
   let res;
   if (planner.kind === "openai-chat") {
@@ -60,22 +66,25 @@ async function callPlanner(providerName: string, tpl: string, specDir: string): 
     });
   }
   const plan = extractJson<PlanOut>(res.text);
-  return plan && Array.isArray(plan.tasks) ? plan : null;
+  return { plan: plan && Array.isArray(plan.tasks) ? plan : null, usage: res.usage };
 }
 
+/** 拆规格并返回本 job planning 阶段的累计用量(CC-54：供 per-job 成本汇总)。 */
 export async function planSpec(
   specDir: string,
   config: Config,
   opts: { repo: string; baseBranch?: string; verify?: string[] },
-): Promise<void> {
+): Promise<Usage> {
   const tpl = await fs.readFile(path.join(__dirname, "..", "prompts", "planner.md"), "utf8");
 
   // planner 降级链：主选(如 hilinkup:glm-5.2)失败/无输出 → 依次降级到更稳的 provider。
   // 上游(HiLinkup)偶发 fetch failed/524 会让单一 planner 把整个 job 在 0% 打挂;有链兜底更稳。
   // 可用 LOOP_PLANNER_FALLBACK(逗号分隔)覆盖默认 deepseek→claude。
   const primary = config.providers.planner;
-  // 降级优先可靠性(claude 订阅最稳)再到 deepseek;主选一般是便宜的 glm,只在其挂时才用这链。
-  const fallbacks = (process.env.LOOP_PLANNER_FALLBACK ?? "claude,deepseek")
+  // 降级先用 deepseek(便宜 0.44/0.88 且可靠——它就是 coder),claude 留最后兜底(最稳但按 API
+  // 价计费很贵,一次 planning ~$0.5)。主选一般是便宜的 glm,只在其挂时才走这链。可用
+  // LOOP_PLANNER_FALLBACK 覆盖。
+  const fallbacks = (process.env.LOOP_PLANNER_FALLBACK ?? "deepseek,claude")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
@@ -83,11 +92,14 @@ export async function planSpec(
 
   let plan: PlanOut | null = null;
   let lastErr: Error | null = null;
+  let planUsage: Usage = { ...ZERO };
   for (let i = 0; i < chain.length; i++) {
     const name = chain[i];
     log.step(`拆解规格 ${specDir}（planner=${name}${i > 0 ? " · 降级" : ""}）`);
     try {
-      plan = await callPlanner(name, tpl, specDir);
+      const r = await callPlanner(name, tpl, specDir);
+      planUsage = add(planUsage, r.usage); // 失败降级的尝试也计成本
+      plan = r.plan;
       if (plan) {
         if (i > 0) log.ok(`planner 主选失败,降级用 ${name} 成功`);
         break;
@@ -138,4 +150,5 @@ export async function planSpec(
   if (!opts.verify && (!manifest.verify.commands || manifest.verify.commands.length === 0)) {
     log.warn("loop.json 的 verify.commands 为空——请填入 typecheck/test 等质量闸命令，否则闸形同虚设");
   }
+  return planUsage;
 }

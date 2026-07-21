@@ -46,6 +46,9 @@ export function callbackBody(evt: LifecycleEvent): string {
     ...(evt.appUrl ? { appUrl: evt.appUrl } : {}),
     ...(evt.prUrl ? { prUrl: evt.prUrl } : {}),
     ...(evt.error ? { error: evt.error } : {}),
+    ...(typeof evt.costUsd === "number" ? { costUsd: evt.costUsd } : {}),
+    ...(typeof evt.inputTokens === "number" ? { inputTokens: evt.inputTokens } : {}),
+    ...(typeof evt.outputTokens === "number" ? { outputTokens: evt.outputTokens } : {}),
     id: idempotencyKey(evt),
   });
 }

@@ -35,6 +35,8 @@ import { emitLifecycle } from "./lifecycle.js";
 import { createPool } from "./pool.js";
 import { installCallbackSink } from "./callback.js";
 import { log } from "./log.js";
+import { ZERO, add } from "./usage.js";
+import type { Usage } from "./usage.js";
 import type { Config, LoadedJob } from "./types.js";
 
 // —— 契约状态机 ——
@@ -53,6 +55,8 @@ interface JobRecord {
   updatedAt: string;
   /** B1：/plan 入队时置 true —— 后台 job 先跑 planSpec(拆规格)再跑任务,避免 /plan 同步阻塞。 */
   needsPlan?: boolean;
+  /** CC-54：本 job 累计用量(planning + 各任务 coder/reviewer)。coding_done/failed 回调回传 costUsd。 */
+  usage: Usage;
 }
 
 /** 从规格目录反推 clientSlug/projectSlug（.../clients/<c>/projects/<p>） */
@@ -117,7 +121,8 @@ function enqueue(jobId: string): void {
         const r0 = registry.get(jobId);
         if (r0?.needsPlan) {
           setState(r0, "planning");
-          await planSpec(r0.specDir, config, { repo: r0.repo });
+          const planUsage = await planSpec(r0.specDir, config, { repo: r0.repo });
+          r0.usage = add(r0.usage, planUsage); // CC-54：planning 成本计入 job
           r0.needsPlan = false;
         }
         if (signal?.aborted) return;
@@ -143,6 +148,10 @@ function enqueue(jobId: string): void {
           projectSlug: fin.projectSlug,
           repo: fin.repo,
           error: fin.error,
+          // CC-54：即便失败也回传已花的成本(hack5 可按策略决定是否扣/退)
+          costUsd: fin.usage.costUsd,
+          inputTokens: fin.usage.inputTokens,
+          outputTokens: fin.usage.outputTokens,
         });
       }
     },
@@ -210,6 +219,7 @@ async function processJob(jobId: string, signal?: AbortSignal): Promise<void> {
         onPhase: (phase) => setState(rec, phase),
         signal,
       });
+      rec.usage = add(rec.usage, result.usage); // CC-54：每任务成本累加进 job
       if (result.prUrl) rec.prUrl = result.prUrl;
     } catch (e) {
       task.status = "failed";
@@ -248,6 +258,10 @@ async function processJob(jobId: string, signal?: AbortSignal): Promise<void> {
       projectSlug: rec.projectSlug,
       repo: rec.repo,
       prUrl: rec.prUrl,
+      // CC-54：回传本 job 实际成本(按 hack5 权威价表逐模型算)供积分扣费
+      costUsd: rec.usage.costUsd,
+      inputTokens: rec.usage.inputTokens,
+      outputTokens: rec.usage.outputTokens,
     });
   }
 }
@@ -357,6 +371,7 @@ async function findJobRecord(jobId: string): Promise<JobRecord | undefined> {
     projectSlug,
     state: deriveState(job),
     updatedAt: new Date().toISOString(),
+    usage: { ...ZERO },
   };
   if (snap) {
     const snapState = snap.state as JobState;
@@ -422,6 +437,7 @@ async function handlePlan(req: IncomingMessage, res: ServerResponse): Promise<vo
     state: "planning",
     needsPlan: true,
     updatedAt: new Date().toISOString(),
+    usage: { ...ZERO },
   };
   registry.set(jobId, rec);
   void persist(rec);
@@ -500,6 +516,10 @@ async function handleStatus(res: ServerResponse, jobId: string): Promise<void> {
           tasks: progress.tasks,
         }
       : {}),
+    // CC-54：实时累计成本(截至当前已完成的 planning+任务)
+    costUsd: rec.usage.costUsd,
+    inputTokens: rec.usage.inputTokens,
+    outputTokens: rec.usage.outputTokens,
     ...(rec.prUrl ? { prUrl: rec.prUrl } : {}),
     ...(rec.appUrl ? { appUrl: rec.appUrl } : {}),
     ...(rec.error ? { error: rec.error } : {}),
