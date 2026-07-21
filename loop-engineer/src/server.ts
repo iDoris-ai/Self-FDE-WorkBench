@@ -28,6 +28,7 @@ import { planSpec } from "./planner.js";
 import { runTask } from "./orchestrator.js";
 import { isGitRepo, pruneWorktrees } from "./git.js";
 import { runWithTimeout } from "./timeout.js";
+import { writeStatus, readStatus } from "./persist.js";
 import { checkWorkbenchToken } from "./auth.js";
 import { emitLifecycle } from "./lifecycle.js";
 import { createPool } from "./pool.js";
@@ -64,6 +65,27 @@ function setState(rec: JobRecord, state: JobState, patch?: Partial<JobRecord>): 
   rec.state = state;
   if (patch) Object.assign(rec, patch);
   rec.updatedAt = new Date().toISOString();
+  // C1：状态落盘(fire-and-forget,last-write-wins),重启后 /status 仍可查
+  void persist(rec);
+}
+
+/** 把 rec 快照写到其规格目录 .loop/status.json（失败仅告警，不打断编排）。 */
+async function persist(rec: JobRecord): Promise<void> {
+  try {
+    await writeStatus(rec.specDir, {
+      jobId: rec.jobId,
+      repo: rec.repo,
+      clientSlug: rec.clientSlug,
+      projectSlug: rec.projectSlug,
+      state: rec.state,
+      prUrl: rec.prUrl,
+      appUrl: rec.appUrl,
+      error: rec.error,
+      updatedAt: rec.updatedAt,
+    });
+  } catch (e) {
+    log.warn(`状态落盘失败(${rec.jobId})：${(e as Error).message}`);
+  }
 }
 
 // —— 有界并发池（W7）——
@@ -242,7 +264,15 @@ async function exists(p: string): Promise<boolean> {
   return fs.access(p).then(() => true).catch(() => false);
 }
 
-/** 从磁盘补齐 registry（供 server 重启后 /run /status 仍能定位已 plan 过的 job） */
+// 冷启动可安全恢复的状态：非「运行中」的都可原样恢复
+const RESTART_SAFE = new Set<JobState>(["queued", "done", "failed"]);
+
+/**
+ * 从磁盘补齐 registry（server 重启后 /run /status 仍能定位已 plan 过的 job）。
+ * 优先读持久化快照(C1)拿真实状态 + prUrl/appUrl;无快照则从 loop.json 粗略推断。
+ * 冷启动 reconcile：快照里「运行中」的状态(planning/coding/reviewing)必是被重启打断的
+ * ——进程已死、没有在跑，标 failed(可 /run 重跑),避免永久卡在 coding。
+ */
 async function findJobRecord(jobId: string): Promise<JobRecord | undefined> {
   const cached = registry.get(jobId);
   if (cached) return cached;
@@ -250,6 +280,8 @@ async function findJobRecord(jobId: string): Promise<JobRecord | undefined> {
   const job = jobs.find((j) => j.manifest.id === jobId);
   if (!job) return undefined;
   const { clientSlug, projectSlug } = clientProjectFromSpecDir(job.jobDir);
+
+  const snap = await readStatus(job.jobDir);
   const rec: JobRecord = {
     jobId,
     specDir: job.jobDir,
@@ -259,6 +291,20 @@ async function findJobRecord(jobId: string): Promise<JobRecord | undefined> {
     state: deriveState(job),
     updatedAt: new Date().toISOString(),
   };
+  if (snap) {
+    const snapState = snap.state as JobState;
+    if (RESTART_SAFE.has(snapState)) {
+      rec.state = snapState;
+    } else {
+      // 运行中被重启打断
+      rec.state = "failed";
+      rec.error = `server 重启,原状态「${snap.state}」的运行已中断(可重跑)`;
+    }
+    rec.prUrl = snap.prUrl;
+    rec.appUrl = snap.appUrl;
+    if (rec.state === "failed" && !rec.error) rec.error = snap.error;
+    rec.updatedAt = snap.updatedAt;
+  }
   registry.set(jobId, rec);
   return rec;
 }
