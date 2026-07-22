@@ -88,12 +88,13 @@ export async function planSpec(
 
   // planner 降级链：主选(如 hilinkup:glm-5.2)失败/无输出 → 依次降级到更稳的 provider。
   // 上游(HiLinkup)偶发 fetch failed/524 会让单一 planner 把整个 job 在 0% 打挂;有链兜底更稳。
-  // 可用 LOOP_PLANNER_FALLBACK(逗号分隔)覆盖默认 deepseek→claude。
+  //
+  // 【云可移植性 · CC-57】默认兜底 = 纯 API-key 的 `deepseek`(env 覆盖端点+token,headless 可跑)。
+  // **不把 `claude` 放进默认链**：`claude` provider env 为空、靠本机 `claude login` 订阅,只在
+  // 你 login 过的机器(如 Mac Mini)能用;一旦部署到真云(无 login),它一触发就报错——既省不了钱
+  // 又不是有效兜底。要在本地把 claude 当最后兜底,显式 `LOOP_PLANNER_FALLBACK=deepseek,claude`。
   const primary = config.providers.planner;
-  // 降级先用 deepseek(便宜 0.44/0.88 且可靠——它就是 coder),claude 留最后兜底(最稳但按 API
-  // 价计费很贵,一次 planning ~$0.5)。主选一般是便宜的 glm,只在其挂时才走这链。可用
-  // LOOP_PLANNER_FALLBACK 覆盖。
-  const fallbacks = (process.env.LOOP_PLANNER_FALLBACK ?? "deepseek,claude")
+  const fallbacks = (process.env.LOOP_PLANNER_FALLBACK ?? "deepseek")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
