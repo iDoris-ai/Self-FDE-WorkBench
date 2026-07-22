@@ -1,6 +1,6 @@
 {
   "name": "fde-copilot",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "description": "FDE Copilot — 客户售前/持续测试的多模态对话 → loop-ready spec 生成器（Claude Agent SDK）",
   "type": "module",
