@@ -1,6 +1,6 @@
 {
   "name": "loop-engineer",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "指挥大师：轮询 loop-ready spec，派 GLM 编码 / Kimi 跨模型审，闸-返工-PR-合并的自主编码循环",
