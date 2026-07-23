@@ -93,8 +93,11 @@ export async function planSpec(
   // **不把 `claude` 放进默认链**：`claude` provider env 为空、靠本机 `claude login` 订阅,只在
   // 你 login 过的机器(如 Mac Mini)能用;一旦部署到真云(无 login),它一触发就报错——既省不了钱
   // 又不是有效兜底。要在本地把 claude 当最后兜底,显式 `LOOP_PLANNER_FALLBACK=deepseek,claude`。
+  // CC-58（jason 12:13/12:30）：planner 按 key 价值级联，用尽即切下一个。默认 workers-ai(glm-5.2,
+  // 含额度)后依次 deepseek-chat → hilinkup(glm-5.2,不掉档)。仍不把 claude 放进默认链
+  // （本机订阅，云端无 login 一触发即报错）。
   const primary = config.providers.planner;
-  const fallbacks = (process.env.LOOP_PLANNER_FALLBACK ?? "deepseek")
+  const fallbacks = (process.env.LOOP_PLANNER_FALLBACK ?? "deepseek-chat,hilinkup:glm-5.2")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);

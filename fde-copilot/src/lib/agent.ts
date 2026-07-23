@@ -8,6 +8,56 @@ import type { ConversationEntry, TurnResult, Usage } from "./types";
 import { ZERO_USAGE } from "./types";
 
 /**
+ * 执行模式（CC-58，与 loop-engineer 对齐）：`api`（默认，云 key）| `local`（显式 opt-in，
+ * 允许本机 `claude login` 订阅）。默认云化，摆脱"某台 Mac Mini 醒着 + 交互式订阅态"的硬依赖。
+ */
+function executionMode(): "api" | "local" {
+  return process.env.EXECUTION_MODE === "local" ? "local" : "api";
+}
+
+/**
+ * full agent-sdk 路径给子进程的认证 env。容器/无人值守里绝不静默回落本机订阅：
+ *  - `local`（opt-in）：继承 process.env，允许本机订阅或环境已有认证。
+ *  - `api`（默认）：强制云端 Anthropic 兼容端点。优先已配好的 ANTHROPIC_*，否则复用 DeepSeek
+ *    云端点（与 loop-engineer 同一套 DEEPSEEK_* 云 key，非 Anthropic 官方；HiLinkup 无 Anthropic
+ *    端点驱动不了 agentic，故 agentic 侧用 DeepSeek），否则 fail-closed 报错。
+ */
+function resolveAgentEnv(): Record<string, string | undefined> {
+  const base: Record<string, string | undefined> = { ...process.env };
+  if (executionMode() === "local") return base;
+
+  if (base.ANTHROPIC_BASE_URL && (base.ANTHROPIC_AUTH_TOKEN || base.ANTHROPIC_API_KEY)) {
+    return base; // 已显式配好 Anthropic 兼容端点
+  }
+  const key = base.DEEPSEEK_API_KEY;
+  const url = base.DEEPSEEK_BASE_URL;
+  const model = base.DEEPSEEK_MODEL;
+  if (key && url) {
+    const env: Record<string, string | undefined> = {
+      ...base,
+      ANTHROPIC_BASE_URL: url,
+      ANTHROPIC_AUTH_TOKEN: key,
+    };
+    if (model) {
+      // 覆盖所有模型 slot，避免 claude 内部选 opus/sonnet/haiku 时回落官方 Anthropic
+      env.ANTHROPIC_MODEL = model;
+      env.ANTHROPIC_DEFAULT_OPUS_MODEL = model;
+      env.ANTHROPIC_DEFAULT_SONNET_MODEL = model;
+      env.ANTHROPIC_DEFAULT_HAIKU_MODEL = model;
+      env.ANTHROPIC_SMALL_FAST_MODEL = model;
+    }
+    return env;
+  }
+  if (base.ANTHROPIC_API_KEY) return base; // 官方 key 兜底（非默认，显式给了就用）
+
+  throw new Error(
+    "fde-copilot 云模式(EXECUTION_MODE=api,默认)需 Anthropic 兼容云端点：配 " +
+      "DEEPSEEK_API_KEY+DEEPSEEK_BASE_URL(推荐,复用 loop-engineer 云 key)或 ANTHROPIC_* 之一。" +
+      "要用本机 claude login 订阅请设 EXECUTION_MODE=local。",
+  );
+}
+
+/**
  * 权限闸（对抗 prompt injection）：客户输入原样进 prompt，故必须硬性约束工具。
  * 文件读写/搜索路径必须落在该客户目录内；只放行检索与 submit_turn；其余（Bash/WebFetch 等）一律拒绝。
  */
@@ -388,6 +438,8 @@ ${taskBlock}`;
   for await (const msg of query({
     prompt,
     options: {
+      // CC-58：默认云化 auth——full 路径不静默吃本机订阅；env 完全替换子进程环境（已 spread process.env）
+      env: resolveAgentEnv(),
       cwd: dir,
       systemPrompt: system,
       model,

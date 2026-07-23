@@ -1,0 +1,29 @@
+{
+  // CC-58 · loop-engineer 常驻 Cloudflare（Worker + Container，单例）
+  // 部署：cd deploy/loop-engineer && pnpm install && pnpm run deploy
+  // 自定义域名 loop.aastar.io：部署后在 CF Dashboard 给本 Worker 加 Custom Domain，
+  //   或取消下方 routes 注释（需该域名已在你的 CF 账号）。
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "workbench-loop-engineer",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "containers": [
+    {
+      "class_name": "LoopEngineerContainer",
+      // Dockerfile 在 loop-engineer/ 目录（相对本 wrangler 文件）
+      "image": "../../loop-engineer",
+      "instance_type": "standard-2",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "LOOP_ENGINEER", "class_name": "LoopEngineerContainer" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["LoopEngineerContainer"] }
+  ]
+  // "routes": [{ "pattern": "loop.aastar.io", "custom_domain": true }]
+}

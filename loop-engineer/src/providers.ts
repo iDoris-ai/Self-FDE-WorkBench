@@ -191,9 +191,39 @@ function extractUsage(stdout: string, provider: ResolvedProvider): Usage {
 export async function runChat(
   system: string,
   user: string,
-  opts: { provider: ResolvedProvider; maxTokens?: number; timeoutMs?: number },
+  opts: {
+    provider: ResolvedProvider;
+    fallbacks?: ResolvedProvider[];
+    maxTokens?: number;
+    timeoutMs?: number;
+  },
 ): Promise<RunAgentResult> {
-  const { provider } = opts;
+  // CC-58（jason 12:13）：按 key 价值级联，用尽即切下一个。主 provider（如 Workers AI 配额
+  // 用尽/限流）内部退避重试仍失败 → 依次 failover 到 fallbacks（DeepSeek → HiLinkup）。
+  // 老调用不传 fallbacks，行为与之前完全一致。
+  const chain = [opts.provider, ...(opts.fallbacks ?? []).filter((p) => p.name !== opts.provider.name)];
+  let lastErr: Error | null = null;
+  for (let i = 0; i < chain.length; i++) {
+    try {
+      return await attemptChat(system, user, chain[i], opts);
+    } catch (e) {
+      lastErr = e as Error;
+      if (i < chain.length - 1) {
+        console.error(
+          `[runChat] ${chain[i].name} 失败(${lastErr.message.slice(0, 100)}) → 级联下一档 ${chain[i + 1].name}`,
+        );
+      }
+    }
+  }
+  throw lastErr ?? new Error("runChat 级联全部失败");
+}
+
+async function attemptChat(
+  system: string,
+  user: string,
+  provider: ResolvedProvider,
+  opts: { maxTokens?: number; timeoutMs?: number },
+): Promise<RunAgentResult> {
   if (!provider.baseUrl || !provider.apiKey || !provider.model) {
     throw new Error(`runChat 需要 openai-chat 供应商（有 baseUrl/apiKey/model）：${provider.name}`);
   }

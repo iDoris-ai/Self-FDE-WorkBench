@@ -2,7 +2,37 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { log } from "./log.js";
-import { resolveProvider } from "./config.js";
+import { resolveProvider, resolveChatChain } from "./config.js";
+import type { ResolvedProvider } from "./config.js";
+
+/**
+ * CC-58 fix（PR #57 review）：容错解析 reviewer 链。主 provider（如默认 workers-ai:...）在缺 CF
+ * 凭证时 resolveProvider 会同步抛错——若不容错，这个抛错发生在 runChat 的 fallback 链介入之前，
+ * "用尽即降级"完全失效（P4 部署前 reviewer 阶段稳定失败）。这里把主 provider 解析失败当作"该档不可用"
+ * 跳过，从首个可解析的兜底档起，与 planner 的降级链对称。
+ * 返回 null = 一个可用 provider 都没有（凭证全缺）→ 调用方按 task-failed 处理。
+ */
+function resolveReviewerChain(
+  primaryName: string,
+): { provider: ResolvedProvider; fallbacks: ResolvedProvider[] } | null {
+  let primary: ResolvedProvider | null = null;
+  try {
+    primary = resolveProvider(primaryName);
+  } catch {
+    primary = null; // 主 provider 不可用（如 workers-ai 缺 CF 凭证）→ 走兜底链
+  }
+  // agentic reviewer（非 openai-chat）：无 chat 兜底链，单 provider 直用（能解析才有）
+  if (primary && primary.kind !== "openai-chat") {
+    return { provider: primary, fallbacks: [] };
+  }
+  // openai-chat（或主档不可用）：主档 + 角色兜底链，逐档跳过不可解析的
+  const fallbacks = resolveChatChain(
+    process.env.LOOP_REVIEWER_FALLBACK ?? "deepseek-chat,hilinkup:kimi-k2.7-code",
+  );
+  const chain = [...(primary ? [primary] : []), ...fallbacks];
+  if (chain.length === 0) return null;
+  return { provider: chain[0], fallbacks: chain.slice(1) };
+}
 import type { Config, LoadedJob, ReviewVerdict, Task } from "./types.js";
 import { runAgent, runChat, extractJson } from "./providers.js";
 import {
@@ -92,8 +122,18 @@ export async function runTask(
   const repo = job.repoPath;
   const integration = job.manifest.integrationBranch;
   let taskUsage: Usage = { ...ZERO }; // CC-54：本任务累计用量（coder + reviewer + 返工）
-  // per-task 模型路由：任务可覆盖全局默认（难任务派更强的模型）
-  const coder = resolveProvider(task.coderProvider ?? config.providers.coder);
+  // per-task 模型路由：任务可覆盖全局默认（难任务派更强的模型）。
+  // 容错解析（PR #57 review）：coder 缺凭证时干净地标 task-failed，不抛未捕获异常。
+  let coder: ResolvedProvider;
+  try {
+    coder = resolveProvider(task.coderProvider ?? config.providers.coder);
+  } catch (e) {
+    task.status = "failed";
+    task.lastResult = `coder provider 解析失败：${(e as Error).message}`;
+    log.err(`  ${task.lastResult}`);
+    await saveJob(job);
+    return { ok: false, status: "failed", detail: task.lastResult, usage: taskUsage };
+  }
   if (coder.kind === "openai-chat") {
     // agentic 编码需 Anthropic 端点或 codex；OpenAI 网关（HiLinkup）不能直接驱动 claude -p
     task.status = "failed";
@@ -102,11 +142,26 @@ export async function runTask(
     await saveJob(job);
     return { ok: false, status: "failed", detail: task.lastResult, usage: taskUsage };
   }
-  const innerReviewer = resolveProvider(task.reviewerProvider ?? config.providers.reviewer);
-  // 评审面板：内层（快、便宜）+ 可选外层（如 deepseek，独立第二意见），双过才 merge
-  const reviewers = [{ tag: "内层", provider: innerReviewer }];
+  // 评审面板：内层（快、便宜）+ 可选外层（如 deepseek，独立第二意见），双过才 merge。
+  // reviewer 用容错链（主档缺凭证 → 降级到兜底，见 resolveReviewerChain），fallbacks 逐档 failover。
+  const reviewerChain = resolveReviewerChain(task.reviewerProvider ?? config.providers.reviewer);
+  if (!reviewerChain) {
+    task.status = "failed";
+    task.lastResult = "reviewer 无可用 provider（Workers AI / DeepSeek / HiLinkup 凭证全缺）";
+    log.err(`  ${task.lastResult}`);
+    await saveJob(job);
+    return { ok: false, status: "failed", detail: task.lastResult, usage: taskUsage };
+  }
+  const reviewers: Array<{ tag: string; provider: ResolvedProvider; fallbacks: ResolvedProvider[] }> = [
+    { tag: "内层", provider: reviewerChain.provider, fallbacks: reviewerChain.fallbacks },
+  ];
   if (config.providers.outerReviewer) {
-    reviewers.push({ tag: "外层", provider: resolveProvider(config.providers.outerReviewer) });
+    // 外层 reviewer 解析失败不阻断主流程（它是可选第二意见）→ 跳过外层
+    try {
+      reviewers.push({ tag: "外层", provider: resolveProvider(config.providers.outerReviewer), fallbacks: [] });
+    } catch (e) {
+      log.warn(`  外层 reviewer 解析失败，跳过：${(e as Error).message}`);
+    }
   }
 
   const integrationWt = await ensureIntegrationWorktree(repo, job.manifest.baseBranch, integration);
@@ -182,7 +237,8 @@ export async function runTask(
           const r = await runChat(
             "你是严格、对抗性的代码评审员。直接输出一个 JSON 对象，第一个字符就是 {，不要任何解释文字或 markdown。",
             `${reviewPrompt}\n\n${reviewDiff}`,
-            { provider: rp.provider },
+            // CC-58：reviewer 默认 Workers AI(kimi)，用尽即按容错链切 DeepSeek → HiLinkup(kimi)
+            { provider: rp.provider, fallbacks: rp.fallbacks },
           );
           return { text: r.text, usage: r.usage };
         }

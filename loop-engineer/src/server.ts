@@ -207,7 +207,14 @@ function enqueue(jobId: string): void {
  * 凭据留在本机 loop-engineer/.env，绝不经 hack5 过线（契约不变，hack5 零改动）。
  */
 function loopPushToken(): string | undefined {
-  return process.env.LOOP_GIT_PUSH_TOKEN || process.env.GITHUB_BOT_TOKEN || undefined;
+  // WORKBENCH_PUSH_TOKEN 是对外文档 + CF Worker passthrough 用的名字（PR #57 review：修名字对不上，
+  // 否则按 deploy/README 一字不差操作会静默拿到 undefined）。保留旧名兼容。
+  return (
+    process.env.WORKBENCH_PUSH_TOKEN ||
+    process.env.LOOP_GIT_PUSH_TOKEN ||
+    process.env.GITHUB_BOT_TOKEN ||
+    undefined
+  );
 }
 
 /** job 级超时上限（默认 60min）。多任务应用(骨架+逐个功能+返工)30min 常不够，放宽到 60min。 */

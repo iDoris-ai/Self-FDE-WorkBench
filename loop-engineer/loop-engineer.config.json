@@ -4,9 +4,9 @@
   "pollIntervalMs": 15000,
   "maxAttempts": 3,
   "providers": {
-    "planner": "hilinkup:glm-5.2",
+    "planner": "workers-ai:@cf/zhipu-ai/glm-5.2",
     "coder": "deepseek",
-    "reviewer": "hilinkup:kimi-k2.5"
+    "reviewer": "workers-ai:@cf/kimi/kimi-k2.7-code"
   },
-  "notes": "纯云配置(HiLinkup 主力 + DeepSeek):planner/reviewer 走 HiLinkup(OpenAI 兼容,一 key 多模型);coder 必须 Anthropic 兼容端点(HiLinkup 驱动不了 agentic claude -p),用 deepseek(api.deepseek.com/anthropic)。要用本机 claude 订阅可把某角色改回 'claude';无 key 本地跑通编排可改 'mock'。watchDirs 下任意含 loop.json 且有 todo 任务的目录会被当作 job。"
+  "notes": "CC-58 模型路由(jason 12:30 定案·按 key 价值三级级联,角色化模型):planner=Workers AI glm-5.2 → deepseek-chat → HiLinkup glm-5.2;reviewer=Workers AI kimi-k2.7-code → deepseek-chat → HiLinkup kimi-k2.7-code(LOOP_PLANNER_FALLBACK/LOOP_REVIEWER_FALLBACK 可覆盖)。级联在 provider 层做(planner 走降级链;reviewer 走 runChat fallbacks),用尽即切下一档。DeepSeek 中间档走其 OpenAI 端点(api.deepseek.com/v1,与 coder 的 /anthropic 同一 DEEPSEEK_API_KEY 两端点)。coder=agentic claude -p,当前固定用 deepseek(api.deepseek.com/anthropic 原生驱动);jason 定案 coder 走方案(c):保留 claude -p + 加 Anthropic→OpenAI 翻译代理让 coder 也能路由 Workers AI/HiLinkup(待评估翻译保真度后落地,见 CC-58 评论)。零官方 Anthropic key、零本机订阅(EXECUTION_MODE=api 默认;本机 claude 订阅显式 EXECUTION_MODE=local)。workers-ai 需 CLOUDFLARE_ACCOUNT_ID+CLOUDFLARE_API_TOKEN(入 CF Secret)。无 key 本地跑通编排改 'mock'。"
 }
