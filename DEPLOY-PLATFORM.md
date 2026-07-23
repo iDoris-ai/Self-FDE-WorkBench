@@ -3,8 +3,14 @@
 > **本文 = 把 WorkBench 平台（三个应用）架起来**，给运营方 / 自持者。
 > 用户**造好的专属工具**怎么部署与跑，见 [DEPLOY-TOOL.md](./DEPLOY-TOOL.md)。经济/计价见 [ECONOMIC_MODEL.md](./ECONOMIC_MODEL.md)。
 
-> 本套（fde-copilot / loop-engineer / capability-packs）含 **Claude Code 本地 agent + 本地 FLUX 生图**，
-> 不能跑云端 serverless。标准形态：**一台常驻 Mac Mini 跑全部，Cloudflare Tunnel 映射到互联网。**
+> **两种部署形态（CC-58）：**
+> - **默认 · Cloudflare 常驻容器**（推荐，7×24 在线，无本机依赖）：fde-copilot + loop-engineer 打进
+>   **CF Container**（Worker + Durable Object 前置），API key 入 **CF Secret**，与 hack5 前台在线衔接，
+>   Mac Mini 关机也不受影响。默认 `EXECUTION_MODE=api`：全走云 key（HiLinkup + DeepSeek），
+>   **零本机 `claude login` 订阅、零官方 Anthropic key**。步骤见 [`deploy/README.md`](./deploy/README.md)。
+>   （capability-packs 的本地 FLUX 生图仍需本机，属独立能力，不影响想法→应用主链路。）
+> - **opt-in · 本机自持**（自建 / 离线开发）：一台常驻 Mac Mini 跑全部 + Cloudflare Tunnel。
+>   要复用本机订阅需显式设 `EXECUTION_MODE=local`。下文即此路径。
 
 ## 这就是「自部署」路径（免费 · Apache 2.0 · 数字公共物品）
 
@@ -16,18 +22,18 @@
 
 | 子项目 | 目录 | 干什么 | 结合你自己的什么 |
 |---|---|---|---|
-| **fde-copilot** | `fde-copilot/` | 追问诉求 → loop-ready 规格 | **你的 Claude Code 订阅**（Agent SDK，`claude login` 即用，零 key） |
+| **fde-copilot** | `fde-copilot/` | 追问诉求 → loop-ready 规格 | 默认云 key（HiLinkup 快 chat / DeepSeek 端点，`EXECUTION_MODE=api`）；本机 `claude login` 订阅仅 `EXECUTION_MODE=local` opt-in |
 | **loop-engineer** | `loop-engineer/` | 照规格自主编码造工具 | `claude -p` + 便宜模型 key（GLM/Kimi/DeepSeek/HiLinkup，见其 `.env.example`） |
 | **capability-packs** | `capability-packs/` | 生成/发布等原子能力 + 网页账号配置 | 本地 FLUX + agent-reach + 你各平台账号（网页填） |
 
-- 仓库：`github.com/AuraAIHQ/Self-FDE-WorkBench`
+- 仓库：`github.com/iDoris-ai/Self-FDE-WorkBench`
 - 每个子项目自带 `README.md` + `.env.example`（配置方式全在里面）。
-- 核心前提：**你自己的 Claude Code**（`claude login`，复用你的订阅）——fde-copilot / loop-engineer 的 orchestrator 都跑在它上面。
+- 核心前提（**opt-in 本机路径**）：设 `EXECUTION_MODE=local` 后，用你自己的 Claude Code（`claude login`，复用订阅）跑 fde-copilot / loop-engineer 的 orchestrator。默认 `api` 模式则无需订阅、全走云 key。
 
 ### 三步跑起来（本机）
 
 ```bash
-git clone https://github.com/AuraAIHQ/Self-FDE-WorkBench && cd Self-FDE-WorkBench
+git clone https://github.com/iDoris-ai/Self-FDE-WorkBench && cd Self-FDE-WorkBench
 claude login                                   # 复用你的 Claude 订阅（零 key）
 for d in fde-copilot loop-engineer capability-packs; do ( cd $d && pnpm install && cp -n .env.example .env 2>/dev/null ); done
 # 各自 .env 填便宜模型 key / 平台账号（按需，见各子项目 README）
