@@ -70,18 +70,14 @@ export interface ResolvedProvider {
  * - `mock`：本地模拟
  */
 /**
- * CC-58（jason 12:13 决策）：chat 角色（planner/reviewer）按 **key 价值级联**，用尽即切下一个。
- * 默认顺序 `workers-ai → deepseek-chat → hilinkup`（成本从低到高，先榨满已付费的 Workers AI 额度）。
- * 缺 key 的档自动跳过（不抛错）。可用 LOOP_CHAT_CASCADE 覆盖顺序。
- * 均为 openai-chat（单发）；agentic coder 走 claude -p 另算，不在此级联。
+ * CC-58（jason 12:13/12:30 决策）：chat 角色（planner/reviewer）按 **key 价值级联**，用尽即切下一个。
+ * 把逗号分隔的 provider 名解析成有序 chat 兜底链（跳过缺 key / 非 chat 的档，不抛错）。
+ * 角色化：planner 与 reviewer 各有自己的链（模型不同，见 loop-engineer.config.json + LOOP_*_FALLBACK）。
+ * 均为 openai-chat（单发）；agentic coder 走 claude -p 另算，不在此链。
  */
-export function resolveChatCascade(): ResolvedProvider[] {
-  const order = (process.env.LOOP_CHAT_CASCADE || "workers-ai,deepseek-chat,hilinkup:kimi-k2.5")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+export function resolveChatChain(csv: string): ResolvedProvider[] {
   const out: ResolvedProvider[] = [];
-  for (const name of order) {
+  for (const name of csv.split(",").map((s) => s.trim()).filter(Boolean)) {
     try {
       const p = resolveProvider(name);
       if (p.kind === "openai-chat") out.push(p);
@@ -90,13 +86,6 @@ export function resolveChatCascade(): ResolvedProvider[] {
     }
   }
   return out;
-}
-
-/** 级联里排在 primaryName 之后的兜底档（供 runChat 的 fallbacks 用）；primary 不在级联则整条当兜底。 */
-export function chatFallbacksAfter(primaryName: string): ResolvedProvider[] {
-  const casc = resolveChatCascade();
-  const idx = casc.findIndex((p) => p.name === primaryName);
-  return idx >= 0 ? casc.slice(idx + 1) : casc;
 }
 
 export function resolveProvider(name: string): ResolvedProvider {
@@ -128,7 +117,7 @@ export function resolveProvider(name: string): ResolvedProvider {
   if (name === "deepseek-chat") {
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) throw new Error("deepseek-chat 缺少 DEEPSEEK_API_KEY（在 .env / CF Secret 配置）");
-    const baseUrl = process.env.DEEPSEEK_CHAT_BASE_URL || "https://api.deepseek.com";
+    const baseUrl = process.env.DEEPSEEK_CHAT_BASE_URL || "https://api.deepseek.com/v1";
     const model = process.env.DEEPSEEK_CHAT_MODEL || "deepseek-chat";
     return { name, kind: "openai-chat", env: {}, baseUrl, apiKey, model, isMock: false };
   }
