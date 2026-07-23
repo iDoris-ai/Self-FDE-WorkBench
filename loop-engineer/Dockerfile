@@ -15,8 +15,9 @@ RUN corepack enable && npm install -g @anthropic-ai/claude-code
 WORKDIR /app
 
 # 先装依赖（含 devDep tsx，运行 src/server.ts 需要）——利用层缓存
+# 钉 pnpm 10.15.1：pnpm 11+ 把"忽略构建脚本(esbuild)"当硬错误(ERR_PNPM_IGNORED_BUILDS),10.x 只警告。
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack prepare pnpm@10.15.1 --activate && pnpm install --frozen-lockfile
 
 # 再拷源码
 COPY . .
