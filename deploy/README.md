@@ -37,11 +37,12 @@ pnpm install
 
 # —— 配 Secret（值不入库，交互输入）——
 wrangler secret put WORKBENCH_TOKEN            # 端点鉴权（fail-closed，必配）
-wrangler secret put HILINKUP_API_KEY
+# chat 级联：Workers AI（下方 CF Token）→ deepseek-chat（DEEPSEEK_API_KEY）→ HiLinkup
+wrangler secret put HILINKUP_API_KEY           # chat 级联末档兜底
 wrangler secret put HILINKUP_BASE_URL          # https://hilinkup.com/v1
-wrangler secret put DEEPSEEK_API_KEY
-wrangler secret put DEEPSEEK_BASE_URL          # https://api.deepseek.com/anthropic
-wrangler secret put DEEPSEEK_MODEL             # deepseek-v4-pro
+wrangler secret put DEEPSEEK_API_KEY           # coder(anthropic 端点) + chat 级联第2档(deepseek-chat)共用
+wrangler secret put DEEPSEEK_BASE_URL          # https://api.deepseek.com/anthropic （coder 用）
+wrangler secret put DEEPSEEK_MODEL             # deepseek-v4-pro （coder 用；chat 档默认 deepseek-chat）
 wrangler secret put WORKBENCH_CALLBACK_URL     # hack5 的 W5 回调接收端
 wrangler secret put WORKBENCH_CALLBACK_SECRET  # 回调 HMAC 共享密钥
 wrangler secret put WORKBENCH_PUSH_TOKEN       # 回推参赛者仓库（仓库级 fine-grained）

@@ -191,21 +191,31 @@ function extractUsage(stdout: string, provider: ResolvedProvider): Usage {
 export async function runChat(
   system: string,
   user: string,
-  opts: { provider: ResolvedProvider; fallback?: ResolvedProvider; maxTokens?: number; timeoutMs?: number },
+  opts: {
+    provider: ResolvedProvider;
+    fallbacks?: ResolvedProvider[];
+    maxTokens?: number;
+    timeoutMs?: number;
+  },
 ): Promise<RunAgentResult> {
-  // CC-58：主 provider（如 Workers AI 配额用尽/限流）在内部退避重试仍失败 → failover 到兜底
-  // provider（HiLinkup）。老调用不传 fallback，行为与之前完全一致。
-  try {
-    return await attemptChat(system, user, opts.provider, opts);
-  } catch (e) {
-    if (opts.fallback && opts.fallback.name !== opts.provider.name) {
-      console.error(
-        `[runChat] ${opts.provider.name} 失败(${(e as Error).message.slice(0, 100)}) → failover ${opts.fallback.name}`,
-      );
-      return attemptChat(system, user, opts.fallback, opts);
+  // CC-58（jason 12:13）：按 key 价值级联，用尽即切下一个。主 provider（如 Workers AI 配额
+  // 用尽/限流）内部退避重试仍失败 → 依次 failover 到 fallbacks（DeepSeek → HiLinkup）。
+  // 老调用不传 fallbacks，行为与之前完全一致。
+  const chain = [opts.provider, ...(opts.fallbacks ?? []).filter((p) => p.name !== opts.provider.name)];
+  let lastErr: Error | null = null;
+  for (let i = 0; i < chain.length; i++) {
+    try {
+      return await attemptChat(system, user, chain[i], opts);
+    } catch (e) {
+      lastErr = e as Error;
+      if (i < chain.length - 1) {
+        console.error(
+          `[runChat] ${chain[i].name} 失败(${lastErr.message.slice(0, 100)}) → 级联下一档 ${chain[i + 1].name}`,
+        );
+      }
     }
-    throw e;
   }
+  throw lastErr ?? new Error("runChat 级联全部失败");
 }
 
 async function attemptChat(

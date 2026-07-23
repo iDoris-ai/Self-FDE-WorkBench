@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { log } from "./log.js";
-import { resolveProvider, resolveChatFallback } from "./config.js";
+import { resolveProvider, chatFallbacksAfter } from "./config.js";
 import type { Config, LoadedJob, ReviewVerdict, Task } from "./types.js";
 import { runAgent, runChat, extractJson } from "./providers.js";
 import {
@@ -182,8 +182,8 @@ export async function runTask(
           const r = await runChat(
             "你是严格、对抗性的代码评审员。直接输出一个 JSON 对象，第一个字符就是 {，不要任何解释文字或 markdown。",
             `${reviewPrompt}\n\n${reviewDiff}`,
-            // CC-58：reviewer 默认 Workers AI，配额用尽/限流 → failover HiLinkup
-            { provider: rp.provider, fallback: resolveChatFallback() },
+            // CC-58：reviewer 默认 Workers AI，用尽即按级联切 DeepSeek → HiLinkup
+            { provider: rp.provider, fallbacks: chatFallbacksAfter(rp.provider.name) },
           );
           return { text: r.text, usage: r.usage };
         }

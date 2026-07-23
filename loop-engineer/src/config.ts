@@ -70,19 +70,33 @@ export interface ResolvedProvider {
  * - `mock`：本地模拟
  */
 /**
- * CC-58：chat 角色（planner/reviewer）的 failover 兜底 —— 默认 HiLinkup。
- * 主 provider（如 workers-ai 配额用尽/限流）失败时，runChat 切到这个兜底。
- * 未配 HILINKUP_API_KEY 则返回 undefined（无兜底，不抛错，主失败即失败）。
+ * CC-58（jason 12:13 决策）：chat 角色（planner/reviewer）按 **key 价值级联**，用尽即切下一个。
+ * 默认顺序 `workers-ai → deepseek-chat → hilinkup`（成本从低到高，先榨满已付费的 Workers AI 额度）。
+ * 缺 key 的档自动跳过（不抛错）。可用 LOOP_CHAT_CASCADE 覆盖顺序。
+ * 均为 openai-chat（单发）；agentic coder 走 claude -p 另算，不在此级联。
  */
-export function resolveChatFallback(): ResolvedProvider | undefined {
-  if (!process.env.HILINKUP_API_KEY) return undefined;
-  const name = process.env.LOOP_CHAT_FALLBACK || "hilinkup:kimi-k2.5";
-  try {
-    const p = resolveProvider(name);
-    return p.kind === "openai-chat" ? p : undefined;
-  } catch {
-    return undefined;
+export function resolveChatCascade(): ResolvedProvider[] {
+  const order = (process.env.LOOP_CHAT_CASCADE || "workers-ai,deepseek-chat,hilinkup:kimi-k2.5")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const out: ResolvedProvider[] = [];
+  for (const name of order) {
+    try {
+      const p = resolveProvider(name);
+      if (p.kind === "openai-chat") out.push(p);
+    } catch {
+      /* 该档缺 key → 跳过，级联到下一个 */
+    }
   }
+  return out;
+}
+
+/** 级联里排在 primaryName 之后的兜底档（供 runChat 的 fallbacks 用）；primary 不在级联则整条当兜底。 */
+export function chatFallbacksAfter(primaryName: string): ResolvedProvider[] {
+  const casc = resolveChatCascade();
+  const idx = casc.findIndex((p) => p.name === primaryName);
+  return idx >= 0 ? casc.slice(idx + 1) : casc;
 }
 
 export function resolveProvider(name: string): ResolvedProvider {
@@ -107,6 +121,15 @@ export function resolveProvider(name: string): ResolvedProvider {
     const apiKey = process.env.HILINKUP_API_KEY;
     if (!apiKey) throw new Error("hilinkup 缺少 HILINKUP_API_KEY（在 .env 配置）");
     if (!model) throw new Error(`hilinkup 需指定模型，如 "hilinkup:glm-5.1"（或设 HILINKUP_MODEL）`);
+    return { name, kind: "openai-chat", env: {}, baseUrl, apiKey, model, isMock: false };
+  }
+  // DeepSeek 的 OpenAI 兼容端点（单发 chat）：deepseek-chat —— 用于 chat 角色级联的中间档。
+  // 注意与 agentic 的 `deepseek`（anthropic 端点，驱动 claude -p）区分：那个走 /anthropic，这个走 /chat/completions。
+  if (name === "deepseek-chat") {
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) throw new Error("deepseek-chat 缺少 DEEPSEEK_API_KEY（在 .env / CF Secret 配置）");
+    const baseUrl = process.env.DEEPSEEK_CHAT_BASE_URL || "https://api.deepseek.com";
+    const model = process.env.DEEPSEEK_CHAT_MODEL || "deepseek-chat";
     return { name, kind: "openai-chat", env: {}, baseUrl, apiKey, model, isMock: false };
   }
   // Cloudflare Workers AI（OpenAI 兼容端点，单发 chat）：workers-ai 或 workers-ai:<model>。

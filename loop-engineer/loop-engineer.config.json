@@ -8,5 +8,5 @@
     "coder": "deepseek",
     "reviewer": "workers-ai"
   },
-  "notes": "CC-58 模型路由:planner/reviewer 默认走 Cloudflare Workers AI(含额度,OpenAI 兼容端点),配额用尽/限流自动 failover 到 HiLinkup(reviewer 走 runChat fallback;planner 走降级链默认 hilinkup:kimi-k2.5)。coder 必须 Anthropic 兼容端点(Workers AI/HiLinkup 都驱动不了 agentic claude -p),继续用 deepseek(api.deepseek.com/anthropic)。零官方 Anthropic key、零本机订阅(EXECUTION_MODE=api 默认;要用本机 claude 订阅显式 EXECUTION_MODE=local)。workers-ai 需 CLOUDFLARE_ACCOUNT_ID+CLOUDFLARE_API_TOKEN(入 CF Secret),模型默认 @cf/meta/llama-3.3-70b-instruct-fp8-fast(可设 WORKERS_AI_MODEL)。无 key 本地跑通编排可改 'mock'。"
+  "notes": "CC-58 模型路由(jason 决策·按 key 价值级联):chat 角色 planner/reviewer 用尽即切下一个 —— Workers AI(已付费含额度)→ deepseek-chat → HiLinkup(缺 key 的档自动跳过;覆盖 LOOP_CHAT_CASCADE)。级联在 provider 层做(planner 走降级链;reviewer 走 runChat fallbacks)。coder 是 agentic claude -p,必须 Anthropic 兼容端点(Workers AI/HiLinkup/deepseek-chat 都是 OpenAI 兼容驱动不了),固定用 deepseek(api.deepseek.com/anthropic),不参与 chat 级联(见 CC-58 评论 coder 通道采建议 a)。零官方 Anthropic key、零本机订阅(EXECUTION_MODE=api 默认;本机 claude 订阅显式 EXECUTION_MODE=local)。workers-ai 需 CLOUDFLARE_ACCOUNT_ID+CLOUDFLARE_API_TOKEN(入 CF Secret),默认模型 @cf/meta/llama-3.3-70b-instruct-fp8-fast。无 key 本地跑通编排改 'mock'。"
 }
