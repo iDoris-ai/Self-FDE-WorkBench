@@ -30,6 +30,7 @@ import { promises as fs } from "node:fs";
 import { loadConfig, loadEnv, PROJECT_ROOT } from "./config.js";
 import { loadJob, nextTask, hasPending, saveJob, scanJobs } from "./jobs.js";
 import { planSpec } from "./planner.js";
+import { estimateJob } from "./estimate.js";
 import { runTask } from "./orchestrator.js";
 import { isGitRepo, pruneWorktrees, isRemoteRepo, ensureClone, pushRefs } from "./git.js";
 import { runWithTimeout } from "./timeout.js";
@@ -339,6 +340,22 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
 function send(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { "content-type": "application/json" });
   res.end(JSON.stringify(body));
+}
+
+/**
+ * POST /estimate { idea?, spec? } → { tier, creditsLow, creditsHigh, note, signals }
+ * CC-62：事前把 idea/spec 估成积分区间,供 hack5 建 job 前做余额预检(够则放行、不够提示充值)。
+ * 纯启发式,秒级返回、零 token 成本 —— 预估本身不烧积分。
+ */
+async function handleEstimate(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const body = await readJson(req);
+  const idea = typeof body.idea === "string" ? body.idea : undefined;
+  const spec = typeof body.spec === "string" ? body.spec : undefined;
+  if (!idea && !spec) {
+    send(res, 400, { error: "需要 idea 或 spec 之一(文本)" });
+    return;
+  }
+  send(res, 200, estimateJob({ idea, spec }));
 }
 
 /**
@@ -698,6 +715,7 @@ async function router(req: IncomingMessage, res: ServerResponse): Promise<void> 
   }
   const url = new URL(req.url ?? "/", "http://x");
   const p = url.pathname;
+  if (req.method === "POST" && p === "/estimate") return handleEstimate(req, res);
   if (req.method === "POST" && p === "/plan") return handlePlan(req, res);
   if (req.method === "POST" && p === "/run") return handleRun(req, res);
   if (req.method === "POST" && p === "/deploy") return handleDeploy(req, res);
