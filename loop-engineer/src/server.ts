@@ -282,9 +282,14 @@ async function processJob(jobId: string, signal?: AbortSignal): Promise<void> {
   }
 
   const tasks = job.manifest.tasks;
-  if (tasks.some((t) => t.status === "failed")) {
+  const failed = tasks.filter((t) => t.status === "failed");
+  if (failed.length > 0) {
+    // CC-60：人话摘要 —— 阶段 + 失败计数 + 首个失败任务的首行原因（整段日志由 callbackBody
+    // 的 clampReason 兜底截断，这里先给一句能读的，而不是把每个 lastResult 全量拼起来）。
+    const first = failed[0];
+    const firstLine = (first.lastResult ?? "").split("\n").map((l) => l.trim()).find(Boolean) ?? "无详情";
     setState(rec, "failed", {
-      error: tasks.filter((t) => t.status === "failed").map((t) => `${t.id}: ${t.lastResult ?? ""}`).join("; "),
+      error: `coding 阶段 ${failed.length}/${tasks.length} 个任务失败；首个 ${first.id}：${firstLine}`,
     });
   } else {
     // W4：远程仓 → 把编码成果回推远程（loop/integration 分支保底 + fast-forward base 便于部署）。
