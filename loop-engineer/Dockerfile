@@ -12,6 +12,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # pnpm（corepack）+ claude CLI（agentic 运行时，全局装到 PATH，靠 env 覆盖端点，无需 login）
 RUN corepack enable && npm install -g @anthropic-ai/claude-code
 
+# CC-61：容器(root)默认无 git identity → coder 的 `git commit` 以 root@cloudchamber 失败。
+# 写一个全局 bot 身份（HOME=/root 会透传进 coder 沙箱，兜底其内部 git 使用）。
+# 运行时 git.ts 另用 GIT_AUTHOR_*/GIT_COMMITTER_* env 覆盖 loop 自身的提交，双保险。
+RUN git config --global user.name "loop-engineer" \
+ && git config --global user.email "loop-engineer@aastar.io"
+
 WORKDIR /app
 
 # 先装依赖（含 devDep tsx，运行 src/server.ts 需要）——利用层缓存

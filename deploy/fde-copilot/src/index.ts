@@ -36,6 +36,10 @@ function buildEnvVars(env: Env): Record<string, string> {
   const vars: Record<string, string> = {
     EXECUTION_MODE: "api",
     NODE_ENV: "production",
+    // CC-61：/api/plan 代理转发目标（「上传现成 spec 一键构建」）。默认指向常驻 loop-engineer。
+    LOOP_ENGINEER_URL:
+      (typeof env.LOOP_ENGINEER_URL === "string" && env.LOOP_ENGINEER_URL) ||
+      "https://loop.aastar.io",
   };
   for (const k of PASSTHROUGH_KEYS) {
     const v = env[k];

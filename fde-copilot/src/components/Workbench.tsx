@@ -29,6 +29,14 @@ const STR = {
     missing: "还缺", specsEmpty: "规格文档会随对话实时生成", empty: "（空）",
     tokens: "tokens", cache: "缓存", computeSecs: "计算秒", roundsRefresh: "轮 · 每 3 分钟刷新",
     theWorkbench: "生成「{x}」的 workbench", collapse: "折叠", rounds: "轮", ready: "就绪",
+    uploadSpec: "⬆ 上传 spec 构建", uploadTitle: "上传现成 spec · 一键构建",
+    uSub: "上传一份 markdown 规格（或用当前 SPEC），loop-engineer 直接据此建 job 编码",
+    uClient: "客户 slug", uProject: "项目 slug", uRepo: "目标仓库 (GitHub)",
+    uFile: "选择 markdown 文件", uUseCurrent: "用当前 SPEC.md", uSpecBody: "spec 内容（可编辑）",
+    uSpecPh: "# 你的规格…（上传文件或粘贴 markdown 全文）",
+    build: "🚀 构建", building: "提交中…", jobTitle: "构建任务", jobState: "状态",
+    jobProgress: "进度", jobCurrent: "当前", viewPr: "查看 PR ↗", viewApp: "在线预览 ↗",
+    jobDone: "✅ 完成", jobFailed: "❌ 失败", closeJob: "关闭",
   },
   en: {
     clients: "Clients", newClient: "＋ New client", clientName: "Client name", background: "Client background / intro",
@@ -43,6 +51,14 @@ const STR = {
     missing: "missing", specsEmpty: "Spec docs generate as you talk", empty: "(empty)",
     tokens: "tokens", cache: "cache", computeSecs: "compute-s", roundsRefresh: "turns · refresh 3 min",
     theWorkbench: "Workbench that generates “{x}”", collapse: "Collapse", rounds: "rounds", ready: "ready",
+    uploadSpec: "⬆ Build from spec", uploadTitle: "Upload a spec · one-click build",
+    uSub: "Upload a markdown spec (or use the current SPEC); loop-engineer builds a job from it",
+    uClient: "Client slug", uProject: "Project slug", uRepo: "Target repo (GitHub)",
+    uFile: "Choose a markdown file", uUseCurrent: "Use current SPEC.md", uSpecBody: "Spec content (editable)",
+    uSpecPh: "# Your spec… (upload a file or paste the full markdown)",
+    build: "🚀 Build", building: "Submitting…", jobTitle: "Build job", jobState: "State",
+    jobProgress: "Progress", jobCurrent: "Current", viewPr: "View PR ↗", viewApp: "Live preview ↗",
+    jobDone: "✅ Done", jobFailed: "❌ Failed", closeJob: "Close",
   },
 } as const;
 
@@ -69,6 +85,18 @@ export default function Workbench() {
   const [sidebar, setSidebar] = useState(true);
   const [newClient, setNewClient] = useState<{ name: string; background: string } | null>(null);
   const [newProject, setNewProject] = useState<{ client: string; name: string; dlvName: string; dlvType: DeliverableType } | null>(null);
+  // CC-61「上传现成 spec 一键构建」：上传 markdown → /api/plan → 轮询 job 状态
+  const [uploadSpec, setUploadSpec] = useState<
+    { client: string; project: string; repo: string; spec: string; fileName: string } | null
+  >(null);
+  const [buildingSpec, setBuildingSpec] = useState(false);
+  const [job, setJob] = useState<
+    {
+      jobId: string; clientSlug: string; projectSlug: string; state: string;
+      percent?: number; done?: number; total?: number; current?: string;
+      prUrl?: string; appUrl?: string; costUsd?: number; error?: string;
+    } | null
+  >(null);
   const t = STR[lang];
   const chatEndRef = useRef<HTMLDivElement>(null);
   // 工作台切换条 URL（部署时用 NEXT_PUBLIC_WB_*_URL 覆盖为你的域名）
@@ -218,6 +246,81 @@ export default function Workbench() {
     flash(r.ok ? (j.detail ?? "已提交") : (j.error ?? "提交失败"), !r.ok);
   };
 
+  // 打开「上传 spec 构建」：优先用当前选中项目预填 client/project/repo，spec 预填当前 SPEC.md
+  const openUpload = () =>
+    setUploadSpec({
+      client: activeClient ?? "",
+      project: activeProject ?? "",
+      repo: activeProject ? `https://github.com/clestons/${activeProject}` : "",
+      spec: detail?.docs["SPEC.md"] ?? "",
+      fileName: "",
+    });
+
+  const onSpecFile = (f: File) => {
+    const reader = new FileReader();
+    reader.onload = () =>
+      setUploadSpec((u) => (u ? { ...u, spec: String(reader.result ?? ""), fileName: f.name } : u));
+    reader.readAsText(f);
+  };
+
+  const startBuild = async () => {
+    if (!uploadSpec || buildingSpec) return;
+    const client = uploadSpec.client.trim();
+    const project = uploadSpec.project.trim();
+    const repo = uploadSpec.repo.trim();
+    const spec = uploadSpec.spec;
+    if (!client || !project || !repo) return flash("客户 / 项目 / 仓库均必填", true);
+    if (!spec.trim()) return flash("spec 为空：上传文件或粘贴 markdown", true);
+    setBuildingSpec(true);
+    try {
+      const r = await fetch("/api/plan", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ clientSlug: client, projectSlug: project, repo, spec }),
+      });
+      const j = await r.json();
+      if (!r.ok) return flash(j.error ?? "构建失败", true);
+      setJob({ jobId: j.jobId, clientSlug: client, projectSlug: project, state: "planning" });
+      setUploadSpec(null);
+      flash(`已建 job：${j.jobId}`);
+    } catch (e) {
+      flash(`网络错误：${(e as Error).message}`, true);
+    } finally {
+      setBuildingSpec(false);
+    }
+  };
+
+  // job 进度轮询（每 4s），到 done/failed 停止
+  useEffect(() => {
+    if (!job || job.state === "done" || job.state === "failed") return;
+    let alive = true;
+    const tick = async () => {
+      try {
+        const qs = new URLSearchParams({
+          jobId: job.jobId, clientSlug: job.clientSlug, projectSlug: job.projectSlug,
+        });
+        const r = await fetch(`/api/plan?${qs.toString()}`);
+        if (!r.ok || !alive) return;
+        const j = await r.json();
+        setJob((prev) =>
+          prev && prev.jobId === job.jobId
+            ? {
+                ...prev,
+                state: j.state ?? prev.state,
+                percent: j.progress?.percent,
+                done: j.progress?.done,
+                total: j.progress?.total,
+                current: j.progress?.current?.title,
+                prUrl: j.prUrl, appUrl: j.appUrl, costUsd: j.costUsd, error: j.error,
+              }
+            : prev,
+        );
+      } catch { /* ignore transient */ }
+    };
+    tick();
+    const id = setInterval(tick, 4000);
+    return () => { alive = false; clearInterval(id); };
+  }, [job?.jobId, job?.state]);
+
   const readiness = detail?.state.lastReadiness;
   const dlvLabel = (type: string) =>
     DELIVERABLE_TYPES.find((d) => d.id === type)?.[lang === "zh" ? "label" : "labelEn"] ?? type;
@@ -344,13 +447,56 @@ export default function Workbench() {
         <div className="col">
           <div className="col-head">
             <h2>{t.deliverable}</h2>
-            {detail && (
-              <div style={{ display: "flex", gap: 6 }}>
-                <button className="ghost" onClick={() => commit(false)}>commit</button>
-                <button className="ghost" onClick={() => commit(true)}>commit+push</button>
-              </div>
-            )}
+            <div style={{ display: "flex", gap: 6 }}>
+              {detail && (
+                <>
+                  <button className="ghost" onClick={() => commit(false)}>commit</button>
+                  <button className="ghost" onClick={() => commit(true)}>commit+push</button>
+                </>
+              )}
+              <button className="ghost" onClick={openUpload} title={t.uploadTitle}>{t.uploadSpec}</button>
+            </div>
           </div>
+
+          {/* CC-61：构建任务进度卡（上传 spec → loop 建 job → 轮询） */}
+          {job && (
+            <div className="jobcard">
+              <div className="jobcard-head">
+                <b>{t.jobTitle}</b>
+                <code>{job.jobId}</code>
+                <div style={{ flex: 1 }} />
+                <button className="ghost sm" onClick={() => setJob(null)}>{t.closeJob}</button>
+              </div>
+              <div className="jobcard-row">
+                <span className="hint">{t.jobState}</span>
+                <span className={`badge ${job.state}`}>
+                  {job.state === "done" ? t.jobDone : job.state === "failed" ? t.jobFailed : job.state}
+                </span>
+                {typeof job.costUsd === "number" && job.costUsd > 0 && (
+                  <span className="hint" style={{ marginLeft: 8 }}>{fmtCost(job.costUsd)}</span>
+                )}
+              </div>
+              {typeof job.total === "number" && job.total > 0 && (
+                <>
+                  <div className="jobcard-row">
+                    <span className="hint">{t.jobProgress}</span>
+                    <span>{job.done ?? 0}/{job.total} · {job.percent ?? 0}%</span>
+                  </div>
+                  <div className="readiness-bar" style={{ marginTop: 4 }}>
+                    <span style={{ width: `${job.percent ?? 0}%` }} />
+                  </div>
+                  {job.current && job.state !== "done" && (
+                    <div className="hint" style={{ marginTop: 4 }}>{t.jobCurrent}：{job.current}</div>
+                  )}
+                </>
+              )}
+              {job.error && <div className="toast err" style={{ position: "static", marginTop: 6, whiteSpace: "pre-wrap" }}>{job.error}</div>}
+              <div className="jobcard-links">
+                {job.prUrl && <a href={job.prUrl} target="_blank" rel="noreferrer">{t.viewPr}</a>}
+                {job.appUrl && <a href={job.appUrl} target="_blank" rel="noreferrer">{t.viewApp}</a>}
+              </div>
+            </div>
+          )}
           {detail && (
             <div className="deliverable">
               <div className="dlv-type">{dlvLabel(detail.state.deliverable.type)}</div>
@@ -392,6 +538,47 @@ export default function Workbench() {
             <div className="modal-actions">
               <button className="ghost" onClick={() => setNewClient(null)}>{t.cancel}</button>
               <button className="primary" onClick={createClient} disabled={!newClient.name.trim()}>{t.create}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CC-61：上传现成 spec 一键构建 */}
+      {uploadSpec && (
+        <div className="modal-bg" onClick={() => setUploadSpec(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{t.uploadTitle}</h3>
+            <div className="hint" style={{ marginBottom: 8 }}>{t.uSub}</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label>{t.uClient}</label>
+                <input value={uploadSpec.client}
+                  onChange={(e) => setUploadSpec({ ...uploadSpec, client: e.target.value })} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label>{t.uProject}</label>
+                <input value={uploadSpec.project}
+                  onChange={(e) => setUploadSpec({ ...uploadSpec, project: e.target.value })} />
+              </div>
+            </div>
+            <label>{t.uRepo}</label>
+            <input placeholder="https://github.com/<owner>/<repo>" value={uploadSpec.repo}
+              onChange={(e) => setUploadSpec({ ...uploadSpec, repo: e.target.value })} />
+            <label>{t.uSpecBody}</label>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+              <input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) onSpecFile(f); }} />
+              {uploadSpec.fileName && <span className="hint">{uploadSpec.fileName}</span>}
+            </div>
+            <textarea rows={10} placeholder={t.uSpecPh} value={uploadSpec.spec}
+              onChange={(e) => setUploadSpec({ ...uploadSpec, spec: e.target.value })}
+              style={{ fontFamily: "var(--mono, monospace)", fontSize: 12 }} />
+            <div className="modal-actions">
+              <button className="ghost" onClick={() => setUploadSpec(null)}>{t.cancel}</button>
+              <button className="primary" onClick={startBuild}
+                disabled={buildingSpec || !uploadSpec.client.trim() || !uploadSpec.project.trim() || !uploadSpec.repo.trim() || !uploadSpec.spec.trim()}>
+                {buildingSpec ? t.building : t.build}
+              </button>
             </div>
           </div>
         </div>

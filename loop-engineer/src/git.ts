@@ -8,9 +8,23 @@ import { log } from "./log.js";
 const pexec = promisify(execFile);
 
 // git 子进程一律非交互：缺凭据/需确认时立即失败，绝不阻塞在终端提示上（clone/fetch/push 都走这条）。
+//
+// CC-61 容器回归修复：CF Container(root) 里没有全局 git identity，coder 的 `git commit`/`merge --no-ff`
+// 会以 `Author identity unknown / root@cloudchamber.(none)` 失败。用 GIT_AUTHOR_*/GIT_COMMITTER_* 环境
+// 变量注入一个 bot 身份，覆盖所有产生提交的 git 命令（无需逐调用点改，也不依赖容器全局配置）。
+// 已在真实 env 里设了就尊重现有值（LOOP_GIT_AUTHOR_NAME/EMAIL 可覆盖默认）。
+const GIT_IDENTITY_NAME = process.env.LOOP_GIT_AUTHOR_NAME || "loop-engineer";
+const GIT_IDENTITY_EMAIL = process.env.LOOP_GIT_AUTHOR_EMAIL || "loop-engineer@aastar.io";
 const GIT_EXEC_OPTS = {
   maxBuffer: 16 * 1024 * 1024,
-  env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+  env: {
+    ...process.env,
+    GIT_TERMINAL_PROMPT: "0",
+    GIT_AUTHOR_NAME: process.env.GIT_AUTHOR_NAME || GIT_IDENTITY_NAME,
+    GIT_AUTHOR_EMAIL: process.env.GIT_AUTHOR_EMAIL || GIT_IDENTITY_EMAIL,
+    GIT_COMMITTER_NAME: process.env.GIT_COMMITTER_NAME || GIT_IDENTITY_NAME,
+    GIT_COMMITTER_EMAIL: process.env.GIT_COMMITTER_EMAIL || GIT_IDENTITY_EMAIL,
+  },
 } as const;
 
 async function git(repo: string, args: string[], extraEnv?: Record<string, string>): Promise<string> {
