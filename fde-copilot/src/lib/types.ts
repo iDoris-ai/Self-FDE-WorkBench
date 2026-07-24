@@ -24,6 +24,8 @@ export interface TurnResult {
   research_notes: ResearchNote[];
   readiness: Readiness;
   updated_docs: string[];
+  /** 快 chat（单次调用）模式：更新后的完整 SPEC.md 全文，由 server 写盘（agent 不碰文件工具）。 */
+  spec_markdown?: string;
 }
 
 export interface ConversationEntry {

@@ -37,13 +37,43 @@ export function add(a: Usage, b: Usage): Usage {
 
 // —— 成本估算价表（USD / 1M token，[输入, 输出]）——
 // 粗估，可按实际账单调整；claude 直接用 SDK 的 total_cost_usd 不走这里。
+// —— 价表 = hack5 积分计费的权威 model-prices.csv(CC-54)。[输入, 输出] USD / 1M token。——
+// 计费必须与 hack5 同源(1 积分 = $0.02 = 成本×2)。含 hack5 表的正式 key + WorkBench 实际
+// 用的短名别名(如 DEEPSEEK_MODEL=deepseek-v4-pro 映射到 hack5 的 deepseek-v4-pro-202606 费率)。
 const PRICE: Record<string, [number, number]> = {
-  "glm-5.1": [1.4, 4.4],
-  "glm-5": [1.0, 3.0],
-  "kimi-k2.7-code": [0.6, 2.5],
-  "kimi-k2.5": [0.6, 2.5],
-  "deepseek-v4-pro": [0.5, 2.0],
-  "deepseek-v4-flash": [0.1, 0.4],
+  // MiniMax
+  "MiniMax-M2": [0.31, 1.24],
+  "MiniMax-M2.1": [0.31, 1.24],
+  "MiniMax-M2.1-highspeed": [0.62, 2.47],
+  "MiniMax-M2.5": [0.31, 1.24],
+  "MiniMax-M2.5-highspeed": [0.62, 2.47],
+  "MiniMax-M2.7": [0.31, 1.24],
+  "MiniMax-M2.7-highspeed": [0.62, 2.47],
+  "minimax-m3": [0.3, 1.2],
+  // DeepSeek（hack5 正式 key + WorkBench 短名别名）
+  "deepseek-v4-flash-202605": [0.15, 0.29],
+  "deepseek-v4-pro-202606": [0.44, 0.88],
+  "deepseek-v4-flash": [0.15, 0.29],
+  "deepseek-v4-pro": [0.44, 0.88],
+  // ByteDance
+  "doubao-seed-2-1-pro-260628": [0.88, 4.41],
+  "doubao-seed-2-1-turbo-260628": [0.44, 2.21],
+  "doubao-seed-evolving": [0.88, 4.41],
+  // Zhipu GLM
+  "glm-4.7": [0.59, 2.35],
+  "glm-5": [0.88, 3.24],
+  "glm-5-turbo": [0.74, 3.24],
+  "glm-5.1": [1.18, 4.11],
+  "glm-5.2": [1.18, 4.11],
+  // Moonshot Kimi
+  "kimi-k2.5": [0.59, 3.09],
+  "kimi-k2.6": [0.96, 3.97],
+  "kimi-k2.7-code": [0.96, 3.97],
+  "kimi-k2.7-code-highspeed": [1.9, 7.94],
+  "kimi-k3": [2.79, 13.97],
+  // Alibaba Qwen
+  "qwen3.7-max": [1.76, 5.29],
+  "qwen3.7-plus": [1.76, 5.29],
 };
 
 export function estimateCost(model: string | undefined, inTok: number, outTok: number): number {

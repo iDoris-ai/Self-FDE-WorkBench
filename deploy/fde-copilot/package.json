@@ -1,0 +1,19 @@
+{
+  "name": "workbench-fde-copilot-deploy",
+  "private": true,
+  "type": "module",
+  "description": "CC-58 · fde-copilot 的 CF Worker+Container 部署包装",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "^0.3.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260723.1",
+    "typescript": "^5.7.3",
+    "wrangler": "^4.113.0"
+  }
+}

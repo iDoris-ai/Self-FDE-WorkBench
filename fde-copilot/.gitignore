@@ -9,3 +9,7 @@ next-env.d.ts
 # 客户目录中的会话日志与内部状态不入库；spec 文档本身入库。
 clients/**/conversation.jsonl
 clients/**/state.json
+
+# 运行数据:客户/项目/规格(运行时生成,不入库,避免 git 操作误伤 live 数据)
+/clients/*
+!/clients/.gitkeep

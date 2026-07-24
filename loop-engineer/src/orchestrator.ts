@@ -2,7 +2,37 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { log } from "./log.js";
-import { resolveProvider } from "./config.js";
+import { resolveProvider, resolveChatChain } from "./config.js";
+import type { ResolvedProvider } from "./config.js";
+
+/**
+ * CC-58 fix（PR #57 review）：容错解析 reviewer 链。主 provider（如默认 workers-ai:...）在缺 CF
+ * 凭证时 resolveProvider 会同步抛错——若不容错，这个抛错发生在 runChat 的 fallback 链介入之前，
+ * "用尽即降级"完全失效（P4 部署前 reviewer 阶段稳定失败）。这里把主 provider 解析失败当作"该档不可用"
+ * 跳过，从首个可解析的兜底档起，与 planner 的降级链对称。
+ * 返回 null = 一个可用 provider 都没有（凭证全缺）→ 调用方按 task-failed 处理。
+ */
+function resolveReviewerChain(
+  primaryName: string,
+): { provider: ResolvedProvider; fallbacks: ResolvedProvider[] } | null {
+  let primary: ResolvedProvider | null = null;
+  try {
+    primary = resolveProvider(primaryName);
+  } catch {
+    primary = null; // 主 provider 不可用（如 workers-ai 缺 CF 凭证）→ 走兜底链
+  }
+  // agentic reviewer（非 openai-chat）：无 chat 兜底链，单 provider 直用（能解析才有）
+  if (primary && primary.kind !== "openai-chat") {
+    return { provider: primary, fallbacks: [] };
+  }
+  // openai-chat（或主档不可用）：主档 + 角色兜底链，逐档跳过不可解析的
+  const fallbacks = resolveChatChain(
+    process.env.LOOP_REVIEWER_FALLBACK ?? "deepseek-chat,hilinkup:kimi-k2.7-code",
+  );
+  const chain = [...(primary ? [primary] : []), ...fallbacks];
+  if (chain.length === 0) return null;
+  return { provider: chain[0], fallbacks: chain.slice(1) };
+}
 import type { Config, LoadedJob, ReviewVerdict, Task } from "./types.js";
 import { runAgent, runChat, extractJson } from "./providers.js";
 import {
@@ -18,6 +48,8 @@ import {
 import { runGate } from "./gate.js";
 import { saveJob, appendJournal } from "./jobs.js";
 import { reportBlocked } from "./feedback.js";
+import { ZERO, add } from "./usage.js";
+import type { Usage } from "./usage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROMPTS = path.resolve(__dirname, "..", "prompts");
@@ -64,30 +96,73 @@ export interface RunTaskResult {
   ok: boolean;
   status: Task["status"];
   detail: string;
+  /** 尽力开成的 PR 链接（无 remote/gh 时为空） */
+  prUrl?: string;
+  /** 本任务累计用量（coder + 各 reviewer + 返工，CC-54 per-job 成本汇总用）。 */
+  usage: Usage;
+}
+
+/** 阶段回调：供 HTTP 编排层（server.ts）把细粒度状态映射到 /status 契约 */
+export interface RunTaskHooks {
+  onPhase?: (phase: "coding" | "reviewing") => void;
+  /** 外部取消信号（job 级超时）：abort 时终止编码/评审、kill 子进程 */
+  signal?: AbortSignal;
 }
 
 /**
  * 跑单个任务的完整闭环：worktree → coder → gate → 跨模型 review → 返工(≤maxAttempts)
  * → PR(尽力) → 合并集成分支 → 标记 done。
  */
-export async function runTask(job: LoadedJob, task: Task, config: Config): Promise<RunTaskResult> {
+export async function runTask(
+  job: LoadedJob,
+  task: Task,
+  config: Config,
+  hooks?: RunTaskHooks,
+): Promise<RunTaskResult> {
   const repo = job.repoPath;
   const integration = job.manifest.integrationBranch;
-  // per-task 模型路由：任务可覆盖全局默认（难任务派更强的模型）
-  const coder = resolveProvider(task.coderProvider ?? config.providers.coder);
+  let taskUsage: Usage = { ...ZERO }; // CC-54：本任务累计用量（coder + reviewer + 返工）
+  // per-task 模型路由：任务可覆盖全局默认（难任务派更强的模型）。
+  // 容错解析（PR #57 review）：coder 缺凭证时干净地标 task-failed，不抛未捕获异常。
+  let coder: ResolvedProvider;
+  try {
+    coder = resolveProvider(task.coderProvider ?? config.providers.coder);
+  } catch (e) {
+    task.status = "failed";
+    task.lastResult = `coder provider 解析失败：${(e as Error).message}`;
+    log.err(`  ${task.lastResult}`);
+    await saveJob(job);
+    return { ok: false, status: "failed", detail: task.lastResult, usage: taskUsage };
+  }
   if (!coder.capabilities.agenticCoder) {
-    // chat-only 网关不能编码；LM Studio 等声明 agenticCoder 的 OpenAI-compatible Provider 可以。
+    // agentic 编码需 Anthropic 端点/codex，或声明 agenticCoder 的 OpenAI-compatible（LM Studio）。
+    // chat-only 网关（HiLinkup / openai-chat 云单发）不能直接驱动 claude -p。
     task.status = "failed";
     task.lastResult = `coder Provider(${coder.name})不具备 agenticCoder 能力`;
     log.err(`  ${task.lastResult}`);
     await saveJob(job);
-    return { ok: false, status: "failed", detail: task.lastResult };
+    return { ok: false, status: "failed", detail: task.lastResult, usage: taskUsage };
   }
-  const innerReviewer = resolveProvider(task.reviewerProvider ?? config.providers.reviewer);
-  // 评审面板：内层（快、便宜）+ 可选外层（如 deepseek，独立第二意见），双过才 merge
-  const reviewers = [{ tag: "内层", provider: innerReviewer }];
+  // 评审面板：内层（快、便宜）+ 可选外层（如 deepseek，独立第二意见），双过才 merge。
+  // reviewer 用容错链（主档缺凭证 → 降级到兜底，见 resolveReviewerChain），fallbacks 逐档 failover。
+  const reviewerChain = resolveReviewerChain(task.reviewerProvider ?? config.providers.reviewer);
+  if (!reviewerChain) {
+    task.status = "failed";
+    task.lastResult = "reviewer 无可用 provider（Workers AI / DeepSeek / HiLinkup 凭证全缺）";
+    log.err(`  ${task.lastResult}`);
+    await saveJob(job);
+    return { ok: false, status: "failed", detail: task.lastResult, usage: taskUsage };
+  }
+  const reviewers: Array<{ tag: string; provider: ResolvedProvider; fallbacks: ResolvedProvider[] }> = [
+    { tag: "内层", provider: reviewerChain.provider, fallbacks: reviewerChain.fallbacks },
+  ];
   if (config.providers.outerReviewer) {
-    reviewers.push({ tag: "外层", provider: resolveProvider(config.providers.outerReviewer) });
+    // 外层 reviewer 解析失败不阻断主流程（它是可选第二意见）→ 跳过外层
+    try {
+      reviewers.push({ tag: "外层", provider: resolveProvider(config.providers.outerReviewer), fallbacks: [] });
+    } catch (e) {
+      log.warn(`  外层 reviewer 解析失败，跳过：${(e as Error).message}`);
+    }
   }
 
   const integrationWt = await ensureIntegrationWorktree(repo, job.manifest.baseBranch, integration);
@@ -109,20 +184,25 @@ export async function runTask(job: LoadedJob, task: Task, config: Config): Promi
   let feedback = "";
   let success = false;
   let lastDetail = "";
+  let prUrl: string | undefined;
 
   try {
     for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
+      if (hooks?.signal?.aborted) throw new Error("job 超时，取消任务");
       task.attempts = attempt;
+      hooks?.onPhase?.("coding");
       log.info(`  尝试 ${attempt}/${config.maxAttempts} · 编码中（${coder.name}）`);
 
       const workerPrompt = workerTpl
         .replace("{{TASK_BLOCK}}", tb)
         .replace("{{FEEDBACK_BLOCK}}", feedback || "（首轮，无返工反馈）");
-      await runAgent(workerPrompt, {
+      const coderRes = await runAgent(workerPrompt, {
         cwd: wt,
         provider: coder,
+        signal: hooks?.signal,
         mockHandler: coder.isMock ? mockCoder(task) : undefined,
       });
+      taskUsage = add(taskUsage, coderRes.usage);
 
       const committed = await commitAll(wt, `feat(${task.id}): ${task.title} [attempt ${attempt}]`);
       if (!committed && !(await hasChanges(wt))) {
@@ -146,30 +226,34 @@ export async function runTask(job: LoadedJob, task: Task, config: Config): Promi
       }
 
       // 跨模型评审面板（内层 + 可选外层），任一打回即返工
+      hooks?.onPhase?.("reviewing");
       const reviewPrompt = reviewerTpl.replace("{{TASK_BLOCK}}", tb);
       // 评审 diff 预先算好，喂给两类 reviewer（agentic 也不必自己跑 git，从而可收成只读）
       const reviewDiff = await diffAgainst(wt, integration);
-      // 单次评审调用（agentic 或 chat）
-      const callReviewer = async (rp: (typeof reviewers)[number]): Promise<string> => {
+      // 单次评审调用（agentic 或 chat）；返回文本 + 用量（CC-54 成本汇总）
+      const callReviewer = async (
+        rp: (typeof reviewers)[number],
+      ): Promise<{ text: string; usage: Usage }> => {
+        // inline = 单发 chat（openai-chat 云单发 / openai-compatible 网关如 HiLinkup / 本地 LM Studio）
         if (rp.provider.capabilities.contextAccess === "inline") {
-          return (
-            await runChat(
-              "你是严格、对抗性的代码评审员。直接输出一个 JSON 对象，第一个字符就是 {，不要任何解释文字或 markdown。",
-              `${reviewPrompt}\n\n${reviewDiff}`,
-              { provider: rp.provider },
-            )
-          ).text;
+          const r = await runChat(
+            "你是严格、对抗性的代码评审员。直接输出一个 JSON 对象，第一个字符就是 {，不要任何解释文字或 markdown。",
+            `${reviewPrompt}\n\n${reviewDiff}`,
+            // CC-58：reviewer 默认 Workers AI(kimi)，用尽即按容错链切 DeepSeek → HiLinkup(kimi)
+            { provider: rp.provider, fallbacks: rp.fallbacks },
+          );
+          return { text: r.text, usage: r.usage };
         }
-        return (
-          await runAgent(`${reviewPrompt}\n\n${reviewDiff}`, {
-            cwd: wt,
-            provider: rp.provider,
-            // reviewer 只读：只给检索工具，并硬禁写/命令（deny 优先于 skip-permissions）
-            allowedTools: ["Read", "Grep", "Glob"],
-            disallowedTools: ["Bash", "Write", "Edit", "MultiEdit", "NotebookEdit"],
-            mockHandler: rp.provider.isMock ? mockReviewer(task) : undefined,
-          })
-        ).text;
+        const r = await runAgent(`${reviewPrompt}\n\n${reviewDiff}`, {
+          cwd: wt,
+          provider: rp.provider,
+          signal: hooks?.signal,
+          // reviewer 只读：只给检索工具，并硬禁写/命令（deny 优先于 skip-permissions）
+          allowedTools: ["Read", "Grep", "Glob"],
+          disallowedTools: ["Bash", "Write", "Edit", "MultiEdit", "NotebookEdit"],
+          mockHandler: rp.provider.isMock ? mockReviewer(task) : undefined,
+        });
+        return { text: r.text, usage: r.usage };
       };
 
       let panelPassed = true;
@@ -177,11 +261,28 @@ export async function runTask(job: LoadedJob, task: Task, config: Config): Promi
         log.info(`  ${r.tag}评审（${r.provider.name}）`);
         // 解析重试：评审输出非 JSON 只是模型格式抖动，重试评审而非返工重编（省 token、防误判）
         let verdict: ReviewVerdict | null = null;
+        let reviewErr: Error | null = null;
         for (let ri = 1; ri <= 2 && !verdict; ri++) {
-          verdict = extractJson<ReviewVerdict>(await callReviewer(r));
+          try {
+            const rev = await callReviewer(r);
+            taskUsage = add(taskUsage, rev.usage);
+            verdict = extractJson<ReviewVerdict>(rev.text);
+          } catch (e) {
+            // 评审模型瞬时故障（如 HiLinkup 524 / 网络）——不是代码问题，别重试解析
+            if (hooks?.signal?.aborted) throw e; // job 超时的 abort 要如实失败，不放行
+            reviewErr = e as Error;
+            break;
+          }
           if (!verdict && ri < 2) log.warn(`  ${r.tag}评审输出非 JSON，重试解析(${ri}/2)`);
         }
 
+        if (reviewErr) {
+          // 评审模型调用失败（gate 已过、代码已写出）：别因「审不成」就判整个任务/ job 失败 →
+          // 保守放行本层（与「裁决无法解析」同策）。真有质量问题留给外层 reviewer / 后续迭代。
+          log.warn(`  ${r.tag}评审模型调用失败(${reviewErr.message.slice(0, 80)})，gate 已过→保守放行本层`);
+          await appendJournal(job, task.id, `⚠ ${r.tag}评审模型故障(${reviewErr.message.slice(0, 60)})→放行`);
+          continue;
+        }
         if (!verdict) {
           // 两次都拿不到可解析裁决：保守放行本层（gate 已过），避免格式问题空转返工
           log.warn(`  ${r.tag}评审两次均无法解析，gate 已过，保守放行本层`);
@@ -216,6 +317,7 @@ export async function runTask(job: LoadedJob, task: Task, config: Config): Promi
         `自主编码循环完成任务 ${task.id}。\n\n${task.spec}\n\n验收：\n${task.acceptance.map((a) => `- ${a}`).join("\n")}`,
       );
       await mergeToIntegration(integrationWt, branch, `Merge ${branch}: ${task.title}`);
+      prUrl = pr.url;
       task.status = "done";
       task.lastResult = `${lastDetail}；${pr.detail}`;
       log.ok(`  合并进 ${integration}；${pr.detail}`);
@@ -237,5 +339,5 @@ export async function runTask(job: LoadedJob, task: Task, config: Config): Promi
     await saveJob(job);
   }
 
-  return { ok: success, status: task.status, detail: lastDetail };
+  return { ok: success, status: task.status, detail: lastDetail, prUrl, usage: taskUsage };
 }

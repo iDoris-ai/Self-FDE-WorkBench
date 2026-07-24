@@ -13,6 +13,8 @@ export interface RunAgentOpts {
   disallowedTools?: string[];
   maxTurns?: number;
   timeoutMs?: number;
+  /** 外部取消信号（job 级超时用）：abort 时 kill 子进程并 reject */
+  signal?: AbortSignal;
   /** provider.isMock 时用它替代真实调用 */
   mockHandler?: (prompt: string, cwd: string) => Promise<string>;
 }
@@ -24,12 +26,67 @@ export interface RunAgentResult {
 }
 
 /**
+ * W2 / B2 硬约束：coder/reviewer 在 worktree 里执行「模型自动生成的代码」。跑不可信代码的
+ * 沙箱应用**白名单**（而非黑名单）——从最小 env 起，只放行明确需要的键，杜绝 host 上其它
+ * 机密（云凭证 AWS_*、其它 *_API_KEY/*_SECRET、SSH agent socket 等）被生成代码读到外泄。
+ *
+ * 模型端点认证（provider.env 的 ANTHROPIC_*）由调用方随后并入 —— 模型必需、非 git 凭证。
+ */
+const SANDBOX_ALLOW_KEYS = new Set([
+  "PATH",
+  "HOME",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "USERPROFILE",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "TZ",
+  "TERM",
+  "SHELL",
+  "USER",
+  "LOGNAME",
+  "TMPDIR",
+  "TEMP",
+  "TMP",
+  "XDG_CONFIG_HOME",
+  "XDG_CACHE_HOME",
+  "XDG_DATA_HOME",
+  "NODE_EXTRA_CA_CERTS",
+  "SSL_CERT_FILE",
+  "SSL_CERT_DIR",
+]);
+
+/**
+ * 构造沙箱环境（白名单）：从最小 allowlist 起，只放行必要的系统/locale 变量，
+ * 再并入 provider.env（模型端点认证）。运维可用 LOOP_SANDBOX_PASSTHROUGH（逗号分隔）
+ * 追加确需透传的键（如某些 CI 环境的代理设置）。
+ */
+export function sandboxEnv(
+  base: NodeJS.ProcessEnv,
+  providerEnv: Record<string, string>,
+): NodeJS.ProcessEnv {
+  const extra = (process.env.LOOP_SANDBOX_PASSTHROUGH ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const allow = new Set([...SANDBOX_ALLOW_KEYS, ...extra]);
+  const env: NodeJS.ProcessEnv = {};
+  for (const k of Object.keys(base)) {
+    if (allow.has(k)) env[k] = base[k];
+  }
+  return { ...env, ...providerEnv };
+}
+
+/**
  * 统一原语：把一个 prompt 交给某供应商执行。
  * 真实供应商 = spawn `claude -p`，用 provider.env 覆盖端点/模型（订阅/GLM/Kimi 同一机制）。
  * mock = 本地模拟，用于无 key 跑通编排。
  */
 export async function runAgent(prompt: string, opts: RunAgentOpts): Promise<RunAgentResult> {
   const { provider } = opts;
+
+  if (opts.signal?.aborted) throw new Error(`供应商 ${provider.name} 已取消（超时）`);
 
   if (provider.isMock) {
     const text = opts.mockHandler
@@ -83,7 +140,13 @@ export async function runAgent(prompt: string, opts: RunAgentOpts): Promise<RunA
     args.push("--allowedTools", ...opts.allowedTools);
   }
 
-  const env = { ...process.env, ...provider.env };
+  // B2：剥离 push token/PAT/编排密钥，绝不让沙箱代码读到 git 凭证
+  const env = sandboxEnv(process.env, provider.env);
+  // CC-58 容器回归修复：CF Container 内以 root 运行，claude CLI 默认拒绝
+  // `--dangerously-skip-permissions`（root/sudo 安全拦截）。IS_SANDBOX=1 是 Anthropic
+  // 官方的一次性沙箱逃生阀——本 CF Container 本就是每 job 短生命周期的隔离沙箱，符合语义。
+  // 本地(非 root)跑不受影响。
+  env.IS_SANDBOX = "1";
 
   const result = await new Promise<RunAgentResult>((resolve, reject) => {
     const child = spawn("claude", args, { cwd: opts.cwd, env });
@@ -93,15 +156,25 @@ export async function runAgent(prompt: string, opts: RunAgentOpts): Promise<RunA
       child.kill("SIGKILL");
       reject(new Error(`供应商 ${provider.name} 超时（${timeoutMs}ms）`));
     }, timeoutMs);
+    // 外部取消（job 级超时）：kill 子进程并 reject
+    const onAbort = () => {
+      child.kill("SIGKILL");
+      reject(new Error(`供应商 ${provider.name} 被取消（job 超时）`));
+    };
+    if (opts.signal) opts.signal.addEventListener("abort", onAbort, { once: true });
+    const cleanup = () => {
+      clearTimeout(timer);
+      if (opts.signal) opts.signal.removeEventListener("abort", onAbort);
+    };
 
     child.stdout.on("data", (d) => (stdout += d.toString()));
     child.stderr.on("data", (d) => (stderr += d.toString()));
     child.on("error", (e) => {
-      clearTimeout(timer);
+      cleanup();
       reject(new Error(`spawn claude 失败：${e.message}`));
     });
     child.on("close", (code) => {
-      clearTimeout(timer);
+      cleanup();
       if (code !== 0) {
         reject(new Error(`供应商 ${provider.name} 退出码 ${code}：${stderr.slice(0, 500)}`));
         return;
@@ -149,9 +222,41 @@ function extractUsage(stdout: string, provider: ResolvedProvider): Usage {
 export async function runChat(
   system: string,
   user: string,
-  opts: { provider: ResolvedProvider; maxTokens?: number; timeoutMs?: number },
+  opts: {
+    provider: ResolvedProvider;
+    fallbacks?: ResolvedProvider[];
+    maxTokens?: number;
+    timeoutMs?: number;
+  },
 ): Promise<RunAgentResult> {
-  const { provider } = opts;
+  // CC-58（jason 12:13）：按 key 价值级联，用尽即切下一个。主 provider（如 Workers AI 配额
+  // 用尽/限流）内部退避重试仍失败 → 依次 failover 到 fallbacks（DeepSeek → HiLinkup）。
+  // 老调用不传 fallbacks，行为与之前完全一致。
+  const chain = [opts.provider, ...(opts.fallbacks ?? []).filter((p) => p.name !== opts.provider.name)];
+  let lastErr: Error | null = null;
+  for (let i = 0; i < chain.length; i++) {
+    try {
+      return await attemptChat(system, user, chain[i], opts);
+    } catch (e) {
+      lastErr = e as Error;
+      if (i < chain.length - 1) {
+        console.error(
+          `[runChat] ${chain[i].name} 失败(${lastErr.message.slice(0, 100)}) → 级联下一档 ${chain[i + 1].name}`,
+        );
+      }
+    }
+  }
+  throw lastErr ?? new Error("runChat 级联全部失败");
+}
+
+async function attemptChat(
+  system: string,
+  user: string,
+  provider: ResolvedProvider,
+  opts: { maxTokens?: number; timeoutMs?: number },
+): Promise<RunAgentResult> {
+  // Union(LM Studio + CC-58): 云 chat provider 需 apiKey，但本地 LM Studio 无 key。
+  // 只强制 baseUrl/model；apiKey 缺失时 fetch 自动省略 authorization 头（见下）。
   if (!provider.baseUrl || !provider.model) {
     throw new Error(`runChat 需要 OpenAI-compatible 供应商（有 baseUrl/model）：${provider.name}`);
   }

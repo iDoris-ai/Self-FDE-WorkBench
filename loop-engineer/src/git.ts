@@ -2,20 +2,42 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { log } from "./log.js";
 
 const pexec = promisify(execFile);
 
-async function git(repo: string, args: string[]): Promise<string> {
+// git 子进程一律非交互：缺凭据/需确认时立即失败，绝不阻塞在终端提示上（clone/fetch/push 都走这条）。
+//
+// CC-61 容器回归修复：CF Container(root) 里没有全局 git identity，coder 的 `git commit`/`merge --no-ff`
+// 会以 `Author identity unknown / root@cloudchamber.(none)` 失败。用 GIT_AUTHOR_*/GIT_COMMITTER_* 环境
+// 变量注入一个 bot 身份，覆盖所有产生提交的 git 命令（无需逐调用点改，也不依赖容器全局配置）。
+// 已在真实 env 里设了就尊重现有值（LOOP_GIT_AUTHOR_NAME/EMAIL 可覆盖默认）。
+const GIT_IDENTITY_NAME = process.env.LOOP_GIT_AUTHOR_NAME || "loop-engineer";
+const GIT_IDENTITY_EMAIL = process.env.LOOP_GIT_AUTHOR_EMAIL || "loop-engineer@aastar.io";
+const GIT_EXEC_OPTS = {
+  maxBuffer: 16 * 1024 * 1024,
+  env: {
+    ...process.env,
+    GIT_TERMINAL_PROMPT: "0",
+    GIT_AUTHOR_NAME: process.env.GIT_AUTHOR_NAME || GIT_IDENTITY_NAME,
+    GIT_AUTHOR_EMAIL: process.env.GIT_AUTHOR_EMAIL || GIT_IDENTITY_EMAIL,
+    GIT_COMMITTER_NAME: process.env.GIT_COMMITTER_NAME || GIT_IDENTITY_NAME,
+    GIT_COMMITTER_EMAIL: process.env.GIT_COMMITTER_EMAIL || GIT_IDENTITY_EMAIL,
+  },
+} as const;
+
+async function git(repo: string, args: string[], extraEnv?: Record<string, string>): Promise<string> {
   const { stdout } = await pexec("git", ["-C", repo, ...args], {
-    maxBuffer: 16 * 1024 * 1024,
+    ...GIT_EXEC_OPTS,
+    env: { ...GIT_EXEC_OPTS.env, ...extraEnv },
   });
   return stdout.trim();
 }
 
-async function tryGit(repo: string, args: string[]): Promise<string | null> {
+async function tryGit(repo: string, args: string[], extraEnv?: Record<string, string>): Promise<string | null> {
   try {
-    return await git(repo, args);
+    return await git(repo, args, extraEnv);
   } catch {
     return null;
   }
@@ -32,6 +54,148 @@ function wtRoot(repo: string): string {
 
 export async function isGitRepo(repo: string): Promise<boolean> {
   return (await tryGit(repo, ["rev-parse", "--is-inside-work-tree"])) === "true";
+}
+
+/** 远程 repo（需 clone）：http(s)/git/ssh scheme，或 scp-like `git@host:path`。本地路径返回 false。 */
+export function isRemoteRepo(repo: string): boolean {
+  return /^(https?|ssh|git):\/\//i.test(repo) || /^[^\s/]+@[^\s/]+:/.test(repo);
+}
+
+/** 允许注入 push token 的 host 白名单（默认 github.com；LOOP_ALLOWED_PUSH_HOSTS 逗号分隔可扩展）。 */
+function allowedPushHosts(): string[] {
+  const raw = process.env.LOOP_ALLOWED_PUSH_HOSTS;
+  return (raw ? raw.split(",") : ["github.com"]).map((s) => s.trim().toLowerCase()).filter(Boolean);
+}
+
+/**
+ * 注入 token / clone 远程仓前的 host 白名单校验（纵深防护：disk-watch 扫到的 loop.json 里的
+ * 远程 URL 不经 /plan 的 assertSafeRepo，这里再挡一道任意 scheme/host）。
+ * 非 https（本地路径 / ssh / git@）无 token 泄漏面，直接放行。
+ */
+export function assertAllowedPushHost(remoteUrl: string): void {
+  let host: string;
+  try {
+    const u = new URL(remoteUrl);
+    if (u.protocol !== "https:") return; // 不注入 token 的协议
+    host = u.host.toLowerCase();
+  } catch {
+    return; // 非 URL（本地路径）→ 不注入 token
+  }
+  if (!allowedPushHosts().includes(host)) {
+    throw new Error(`repo host 不在 push 白名单：${host}（允许：${allowedPushHosts().join(", ")}）`);
+  }
+}
+
+interface GitAuth {
+  /** 送给 git 的 URL：含用户名 x-access-token（非机密），但**不含** token。 */
+  url: string;
+  /** token 经 GIT_ASKPASS 从 env 提供，不进 argv、不写 .git/config。 */
+  env: Record<string, string>;
+  cleanup: () => Promise<void>;
+}
+
+/**
+ * 构造带凭证的 git 认证（对齐 fde-copilot #32 的不变量）：
+ * token 走临时 GIT_ASKPASS 脚本从 env 读，**绝不进 argv / .git/config**。
+ * 原因：argv 经 `ps` 对同用户可见,并发池(#37)下另一 job 可执 Bash 的 coder 能 `ps aux`
+ * 偷走共享 push token —— 正中沙箱威胁模型。username `x-access-token` 非机密,进 argv 无妨。
+ * 非 https 或无 token：原样，无 askpass。
+ */
+async function buildAuth(remoteUrl: string, token?: string): Promise<GitAuth> {
+  const noop: GitAuth = { url: remoteUrl, env: {}, cleanup: async () => {} };
+  if (!token) return noop;
+  let u: URL;
+  try {
+    u = new URL(remoteUrl);
+  } catch {
+    return noop; // 本地路径
+  }
+  if (u.protocol !== "https:") return noop;
+  assertAllowedPushHost(remoteUrl); // 注入 token 前双保险
+  u.username = "x-access-token";
+  u.password = ""; // token 不进 URL
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "loop-askpass-"));
+  const askpass = path.join(dir, "askpass.sh");
+  await fs.writeFile(askpass, `#!/bin/sh\nexec printf '%s' "$LOOP_GIT_TOKEN"\n`, { mode: 0o700 });
+  return {
+    url: u.toString(),
+    env: { GIT_ASKPASS: askpass, LOOP_GIT_TOKEN: token, GIT_TERMINAL_PROMPT: "0" },
+    cleanup: () => fs.rm(dir, { recursive: true, force: true }).catch(() => {}),
+  };
+}
+
+/** 把 token 从报错里抹掉（防泄漏到持久化 status / 日志）。 */
+function redact(s: string, token?: string): string {
+  return token ? s.split(token).join("***") : s;
+}
+
+/**
+ * 确保远程 repo 有一份本地 clone（W2/W4 补漏：loop 自己 clone 远程仓再编码/回推）。
+ * - 已是 git 仓：best-effort fetch base（不 reset，保住已有 loop/integration 进度）。
+ * - 路径存在但非 git 仓（残留半成品）：清掉重 clone。
+ * - 缺失：clone。token 走 GIT_ASKPASS（不进 argv/.git/config）。
+ */
+export async function ensureClone(
+  remoteUrl: string,
+  localPath: string,
+  baseBranch: string,
+  token?: string,
+): Promise<void> {
+  assertAllowedPushHost(remoteUrl); // 纵深:即便无 token,https 也须落白名单 host
+  const auth = await buildAuth(remoteUrl, token);
+  try {
+    if (await isGitRepo(localPath)) {
+      await tryGit(localPath, ["fetch", auth.url, baseBranch], auth.env);
+      return;
+    }
+    const exists = await fs
+      .access(localPath)
+      .then(() => true)
+      .catch(() => false);
+    if (exists) await fs.rm(localPath, { recursive: true, force: true });
+    await fs.mkdir(path.dirname(localPath), { recursive: true });
+    try {
+      await pexec("git", ["clone", auth.url, localPath], {
+        ...GIT_EXEC_OPTS,
+        env: { ...GIT_EXEC_OPTS.env, ...auth.env },
+      });
+    } catch (e) {
+      throw new Error(redact((e as Error).message, token));
+    }
+    // origin 用干净 URL（无 token、无 x-access-token 用户名），保持 .git/config 干净
+    await tryGit(localPath, ["remote", "set-url", "origin", remoteUrl]);
+  } finally {
+    await auth.cleanup();
+  }
+}
+
+/**
+ * 把本地分支 push 回远程若干 refspec（token 走 GIT_ASKPASS，不进 argv/.git/config）。
+ * 逐条独立 push：某条失败（如 main 非 fast-forward）不影响其它条落地。
+ */
+export async function pushRefs(
+  repo: string,
+  remoteUrl: string,
+  refspecs: string[],
+  token?: string,
+): Promise<{ pushed: boolean; detail: string }> {
+  const auth = await buildAuth(remoteUrl, token);
+  const okRefs: string[] = [];
+  const failRefs: string[] = [];
+  try {
+    for (const spec of refspecs) {
+      const r = await tryGit(repo, ["push", auth.url, spec], auth.env);
+      if (r === null) failRefs.push(spec);
+      else okRefs.push(spec);
+    }
+  } finally {
+    await auth.cleanup();
+  }
+  if (failRefs.length === 0) return { pushed: true, detail: `已 push：${okRefs.join(" ")}` };
+  return {
+    pushed: okRefs.length > 0,
+    detail: `push 部分/全部失败 —— 成功[${okRefs.join(" ") || "无"}] 失败[${failRefs.join(" ")}]`,
+  };
 }
 
 async function branchExists(repo: string, branch: string): Promise<boolean> {
@@ -79,6 +243,11 @@ export async function createTaskWorktree(
   await fs.mkdir(path.dirname(wtPath), { recursive: true });
   await git(repo, ["worktree", "add", wtPath, "-b", taskBranch, integrationBranch]);
   return wtPath;
+}
+
+/** 清理该 repo 下已失效/遗留的 worktree 记录（超时/失败后的半成品清理，尽力而为）。 */
+export async function pruneWorktrees(repo: string): Promise<void> {
+  await tryGit(repo, ["worktree", "prune"]);
 }
 
 export async function removeWorktree(repo: string, wtPath: string): Promise<void> {

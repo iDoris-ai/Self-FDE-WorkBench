@@ -1,0 +1,28 @@
+{
+  // CC-58 · fde-copilot 常驻 Cloudflare（Worker + Container，单例）
+  // 部署：cd deploy/fde-copilot && pnpm install && pnpm run deploy
+  // 自定义域名 workbench.aastar.io：部署后在 CF Dashboard 给本 Worker 加 Custom Domain。
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "workbench-fde-copilot",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "containers": [
+    {
+      "class_name": "FdeCopilotContainer",
+      "image": "../../fde-copilot/Dockerfile",
+      "instance_type": "standard-2",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "FDE_COPILOT", "class_name": "FdeCopilotContainer" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["FdeCopilotContainer"] }
+  ],
+  // CC-58：直接部署到 CF（不再走 Mac Mini + Tunnel），复用原域名 workbench.aastar.io 为 Custom Domain。
+  "routes": [{ "pattern": "workbench.aastar.io", "custom_domain": true }]
+}

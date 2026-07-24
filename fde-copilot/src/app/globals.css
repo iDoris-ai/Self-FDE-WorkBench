@@ -211,6 +211,50 @@ textarea:focus {
   color: var(--green);
   border-color: var(--green);
 }
+/* CC-61：loop job 状态 badge */
+.badge.queued { color: var(--muted); }
+.badge.planning, .badge.coding, .badge.reviewing {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.badge.done { color: var(--green); border-color: var(--green); }
+.badge.failed { color: #ff6b6b; border-color: #ff6b6b; }
+
+/* CC-61：上传 spec 构建 · 任务进度卡 */
+.jobcard {
+  margin: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.jobcard-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.jobcard-head code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+.jobcard-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.jobcard-links {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.jobcard-links a {
+  color: var(--accent);
+  font-size: 13px;
+}
 
 /* 对话 */
 .msg {
@@ -494,4 +538,45 @@ button.ghost.block {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 16px;
+}
+
+/* 工作台切换条（贯穿三个 app） */
+.wbnav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--border);
+  background: #0d1117;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.wbnav a {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+.wbnav a:hover {
+  color: var(--text);
+  background: var(--panel);
+}
+.wbnav a.cur {
+  color: #041225;
+  background: var(--accent);
+  font-weight: 600;
+}
+.wbnav .wbbrand {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  margin-right: 2px;
+}
+.wbnav .wbsep {
+  color: #3a3f47;
+}
+.wbnav .wbsite {
+  margin-left: auto;
 }

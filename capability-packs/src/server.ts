@@ -5,6 +5,27 @@ import { invoke } from "./invoke.js";
 
 const PORT = Number(process.env.CAP_PORT ?? 4141);
 
+// 贯穿三个 app 的工作台切换条（URL 可用 WB_*_URL 环境变量覆盖，默认本地端口）
+function wbSwitcher(current: string): string {
+  const u = {
+    fde: process.env.WB_FDE_URL || "http://localhost:3939",
+    loop: process.env.WB_LOOP_URL || "http://localhost:4040",
+    packs: process.env.WB_PACKS_URL || "http://localhost:4141",
+    site: process.env.WB_SITE_URL || "http://localhost:8080",
+  };
+  const a = (k: string, url: string, label: string) =>
+    `<a href="${url}"${k === current ? ' class="cur"' : ""}>${label}</a>`;
+  return (
+    `<div class="wbnav"><span class="wbbrand">WORKBENCH</span>` +
+    a("fde", u.fde, "① 需求 fde-copilot") +
+    `<span class="wbsep">→</span>` +
+    a("loop", u.loop, "② 造 loop-engineer") +
+    `<span class="wbsep">→</span>` +
+    a("packs", u.packs, "③ 能力 capability-packs") +
+    `<a class="wbsite" href="${u.site}">官网 ↗</a></div>`
+  );
+}
+
 const PAGE = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
 <title>Capability Packs</title><style>
 :root{--bg:#0e1116;--panel:#161b22;--b:#2b333f;--tx:#e6edf3;--mut:#8b98a9;--acc:#4f9dff;--grn:#3fb950;--amb:#d29922}
@@ -24,7 +45,8 @@ button:hover{border-color:var(--acc)}button.p{background:var(--acc);border-color
 .note{color:var(--mut);font-size:11.5px;margin-top:6px;line-height:1.5}
 .msg{font-size:12px;margin-top:8px}.msg.ok{color:var(--grn)}.msg.err{color:var(--amb)}
 .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:pre-wrap;color:var(--mut);margin-top:6px;max-height:160px;overflow:auto}
-</style></head><body><div class="wrap">
+.wbnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;padding:8px 16px;border-bottom:1px solid var(--b);background:#0d1117;color:var(--mut)}.wbnav a{color:var(--mut);text-decoration:none;padding:3px 9px;border-radius:6px}.wbnav a:hover{color:var(--tx);background:var(--panel)}.wbnav a.cur{color:#041225;background:var(--acc);font-weight:600}.wbnav .wbbrand{font-weight:700;letter-spacing:.08em;color:var(--tx);margin-right:2px}.wbnav .wbsep{color:#3a3f47}.wbnav .wbsite{margin-left:auto}
+</style></head><body><!--WBNAV--><div class="wrap">
 <h1>Capability Packs</h1><div class="sub">能力包 · 账号配置在本机(127.0.0.1)，凭证只存本地 accounts/（不入库）</div>
 <h2>能力包</h2><div id="packs"></div>
 <h2>账号配置</h2><div id="accounts"></div>
@@ -109,7 +131,7 @@ const server = createServer(async (req, res) => {
       return json(200, await invoke(id, strInput));
     }
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    res.end(PAGE);
+    res.end(PAGE.replace("<!--WBNAV-->", wbSwitcher("packs")));
   } catch (e) {
     json(500, { error: (e as Error).message });
   }

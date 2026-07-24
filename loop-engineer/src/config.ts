@@ -37,8 +37,24 @@ export async function loadConfig(): Promise<Config> {
   return cfg;
 }
 
-/** Anthropic Agent SDK、OpenAI-compatible（可按能力支持 coder）或 mock。 */
-export type ProviderKind = "anthropic-agentic" | "openai-compatible" | "mock";
+/**
+ * 执行模式：`api`（默认，云 key 驱动，无人值守/容器可跑）| `local`（显式 opt-in，
+ * 允许用本机 `claude login` 订阅）。CC-58：默认云化，彻底摆脱"某台 Mac Mini 醒着 +
+ * 交互式订阅态"的硬依赖；只有显式 `EXECUTION_MODE=local` 才放行裸 `claude` 订阅 provider。
+ */
+export function executionMode(): "api" | "local" {
+  return process.env.EXECUTION_MODE === "local" ? "local" : "api";
+}
+
+/**
+ * Provider 种类：
+ * - `anthropic-agentic`：起 `claude -p`（要 Anthropic 端点），可 agentic coder。
+ * - `openai-compatible`：OpenAI 兼容端点，按 `capabilities.agenticCoder` 决定能否本地 agentic 编码
+ *   （LM Studio = 可编码；HiLinkup = 仅单发 chat）。
+ * - `openai-chat`：云单发 /chat/completions（Workers AI / DeepSeek-chat），仅 chat 角色。
+ * - `mock`：本地模拟。
+ */
+export type ProviderKind = "anthropic-agentic" | "openai-compatible" | "openai-chat" | "mock";
 
 export interface ResolvedProvider {
   name: string;
@@ -65,13 +81,43 @@ export interface ResolvedProvider {
  * - `hilinkup` / `hilinkup:<model>`：OpenAI 兼容网关，单发 chat（一 key 多模型）
  * - `mock`：本地模拟
  */
+/**
+ * CC-58（jason 12:13/12:30 决策）：chat 角色（planner/reviewer）按 **key 价值级联**，用尽即切下一个。
+ * 把逗号分隔的 provider 名解析成有序 chat 兜底链（跳过缺 key / 非 chat 的档，不抛错）。
+ * 角色化：planner 与 reviewer 各有自己的链（模型不同，见 loop-engineer.config.json + LOOP_*_FALLBACK）。
+ * 单发 chat 可由 `openai-chat`（Workers AI/DeepSeek-chat）或 `openai-compatible`（HiLinkup/LM Studio）承担；
+ * agentic coder 走 claude -p 另算，不在此链。
+ */
+export function resolveChatChain(csv: string): ResolvedProvider[] {
+  const out: ResolvedProvider[] = [];
+  for (const name of csv.split(",").map((s) => s.trim()).filter(Boolean)) {
+    try {
+      const p = resolveProvider(name);
+      // 能做单发 chat 的（openai-chat 云单发，或 openai-compatible 网关/本地）都可入链
+      if (p.kind === "openai-chat" || p.kind === "openai-compatible") out.push(p);
+    } catch {
+      /* 该档缺 key → 跳过，级联到下一个 */
+    }
+  }
+  return out;
+}
+
 export function resolveProvider(
   name: string,
   sourceEnv: NodeJS.ProcessEnv = process.env,
 ): ResolvedProvider {
   if (name === "claude") {
+    // 本机 claude login 订阅 = 显式 opt-in（CC-58）。默认云模式（EXECUTION_MODE=api）下禁用，
+    // 避免容器/无人值守环境里静默依赖不存在的订阅态而无限排队。切 EXECUTION_MODE=local 才放行。
+    if (executionMode() !== "local") {
+      throw new Error(
+        `provider "claude"（本机订阅）需显式 opt-in：设 EXECUTION_MODE=local 才可用。` +
+          `默认云模式请用云 provider（hilinkup:* 或 deepseek，key 走 .env / CF Secret）。`,
+      );
+    }
     return {
-      name, kind: "anthropic-agentic", env: {}, capabilities: { chat: true, agenticCoder: true, contextAccess: "agentic" }, isMock: false,
+      name, kind: "anthropic-agentic", env: {},
+      capabilities: { chat: true, agenticCoder: true, contextAccess: "agentic" }, isMock: false,
     };
   }
   if (name === "mock") {
@@ -100,6 +146,35 @@ export function resolveProvider(
     if (!model) throw new Error(`hilinkup 需指定模型，如 "hilinkup:glm-5.1"（或设 HILINKUP_MODEL）`);
     return {
       name, kind: "openai-compatible", env: {}, baseUrl, apiKey, model,
+      capabilities: { chat: true, agenticCoder: false, contextAccess: "inline" }, isMock: false,
+    };
+  }
+  // DeepSeek 的 OpenAI 兼容端点（单发 chat）：deepseek-chat —— 用于 chat 角色级联的中间档。
+  // 注意与 agentic 的 `deepseek`（anthropic 端点，驱动 claude -p）区分：那个走 /anthropic，这个走 /chat/completions。
+  if (name === "deepseek-chat") {
+    const apiKey = sourceEnv.DEEPSEEK_API_KEY;
+    if (!apiKey) throw new Error("deepseek-chat 缺少 DEEPSEEK_API_KEY（在 .env / CF Secret 配置）");
+    const baseUrl = sourceEnv.DEEPSEEK_CHAT_BASE_URL || "https://api.deepseek.com/v1";
+    const model = sourceEnv.DEEPSEEK_CHAT_MODEL || "deepseek-chat";
+    return {
+      name, kind: "openai-chat", env: {}, baseUrl, apiKey, model,
+      capabilities: { chat: true, agenticCoder: false, contextAccess: "inline" }, isMock: false,
+    };
+  }
+  // Cloudflare Workers AI（OpenAI 兼容端点，单发 chat）：workers-ai 或 workers-ai:<model>。
+  // CC-58：planner/reviewer 默认走 Workers AI（含额度）,用尽/限流 → runChat 层 failover 到 HiLinkup。
+  // 容器内直连 Workers AI REST + CF API Token（CLOUDFLARE_API_TOKEN/ACCOUNT_ID 入 CF Secret）。
+  if (name === "workers-ai" || name.startsWith("workers-ai:")) {
+    const model = name.includes(":")
+      ? name.slice(name.indexOf(":") + 1)
+      : sourceEnv.WORKERS_AI_MODEL || "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+    const accountId = sourceEnv.CLOUDFLARE_ACCOUNT_ID;
+    const apiKey = sourceEnv.CLOUDFLARE_API_TOKEN;
+    if (!accountId) throw new Error("workers-ai 缺少 CLOUDFLARE_ACCOUNT_ID（在 .env / CF Secret 配置）");
+    if (!apiKey) throw new Error("workers-ai 缺少 CLOUDFLARE_API_TOKEN（在 .env / CF Secret 配置）");
+    const baseUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1`;
+    return {
+      name, kind: "openai-chat", env: {}, baseUrl, apiKey, model,
       capabilities: { chat: true, agenticCoder: false, contextAccess: "inline" }, isMock: false,
     };
   }
