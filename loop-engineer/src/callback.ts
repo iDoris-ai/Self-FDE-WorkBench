@@ -36,6 +36,18 @@ export function idempotencyKey(evt: LifecycleEvent): string {
   return createHmac("sha256", "workbench-idem-v1").update(basis).digest("hex").slice(0, 32);
 }
 
+/**
+ * CC-60：失败摘要收敛为 ≤max 字的单行纯文本，供 hack5 存 build_error / 直接展示给用户。
+ * 折叠空白（失败日志常含整段多行输出，见 server.ts 拼接 + gate failureLog），超长保留头部
+ * （stage + 首个失败任务信息最有价值）并追加 `…(truncated)`，保证结果长度始终 ≤max。
+ */
+export function clampReason(s: string, max = 500): string {
+  const t = s.replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  const SUFFIX = "…(truncated)";
+  return t.slice(0, max - SUFFIX.length).trimEnd() + SUFFIX;
+}
+
 /** 构造回调 body（稳定字段序,便于签名/校验）。导出供测试与 hack5 侧对齐。 */
 export function callbackBody(evt: LifecycleEvent): string {
   return JSON.stringify({
@@ -45,7 +57,8 @@ export function callbackBody(evt: LifecycleEvent): string {
     repo: evt.repo,
     ...(evt.appUrl ? { appUrl: evt.appUrl } : {}),
     ...(evt.prUrl ? { prUrl: evt.prUrl } : {}),
-    ...(evt.error ? { error: evt.error } : {}),
+    // CC-60：单 choke point 截断 error（不论来源:超时/异常/任务失败拼接），契约保证 ≤500 字。
+    ...(evt.error ? { error: clampReason(evt.error) } : {}),
     ...(typeof evt.costUsd === "number" ? { costUsd: evt.costUsd } : {}),
     ...(typeof evt.inputTokens === "number" ? { inputTokens: evt.inputTokens } : {}),
     ...(typeof evt.outputTokens === "number" ? { outputTokens: evt.outputTokens } : {}),
