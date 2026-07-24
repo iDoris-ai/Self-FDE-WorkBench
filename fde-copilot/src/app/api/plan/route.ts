@@ -46,6 +46,10 @@ export async function POST(req: Request) {
   if (!spec || !spec.trim()) {
     return NextResponse.json({ error: "spec 为空（请上传 markdown 全文）" }, { status: 400 });
   }
+  // 与 loop-engineer /plan 同一上限（512KB）：在代理侧先挡掉超大 body，避免整段 buffer + 转发后才被 loop 拒。
+  if (spec.length > 512 * 1024) {
+    return NextResponse.json({ error: "spec 过大（上限 512KB）" }, { status: 400 });
+  }
   // 与 chat 一致：origin 门禁 + 作用域/admin token（越权访问他人项目 → 403）
   const denied = scopedAuthError(req, clientSlug, projectSlug);
   if (denied) return denied;
