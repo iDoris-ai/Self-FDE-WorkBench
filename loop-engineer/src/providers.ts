@@ -116,6 +116,11 @@ export async function runAgent(prompt: string, opts: RunAgentOpts): Promise<RunA
 
   // B2：剥离 push token/PAT/编排密钥，绝不让沙箱代码读到 git 凭证
   const env = sandboxEnv(process.env, provider.env);
+  // CC-58 容器回归修复：CF Container 内以 root 运行，claude CLI 默认拒绝
+  // `--dangerously-skip-permissions`（root/sudo 安全拦截）。IS_SANDBOX=1 是 Anthropic
+  // 官方的一次性沙箱逃生阀——本 CF Container 本就是每 job 短生命周期的隔离沙箱，符合语义。
+  // 本地(非 root)跑不受影响。
+  env.IS_SANDBOX = "1";
 
   const result = await new Promise<RunAgentResult>((resolve, reject) => {
     const child = spawn("claude", args, { cwd: opts.cwd, env });
